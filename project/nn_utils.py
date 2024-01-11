@@ -2,6 +2,11 @@ import numpy as np
 import pandas as pd
 import matplotlib as plt
 
+'''If the value is greater than 0, we leave it as is, else we replace it with value * 0,01'''
+def leaky_relu(x):
+    if x > 0:
+        return x
+    return x * 0.01 
 
 class Node:
     ''' 
@@ -74,3 +79,6 @@ class NeuralNetwork:
         for pos, layer in enumerate(self.layers):
             res += f"LAYER {pos} \n" + str(layer) + "\n"
         return res
+
+   # def feed_forward():
+
