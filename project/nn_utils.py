@@ -2,11 +2,21 @@ import numpy as np
 import pandas as pd
 import matplotlib as plt
 
+'''Returns the max among x and 0'''
+def relu(x):
+    return x * (x > 0)    
+
 '''If the value is greater than 0, we leave it as is, else we replace it with value * 0,01'''
 def leaky_relu(x):
     if x > 0:
         return x
     return x * 0.01 
+
+def tanh(x):
+    return np.tanh(x)
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
 class Node:
     ''' 
@@ -80,5 +90,7 @@ class NeuralNetwork:
             res += f"LAYER {pos} \n" + str(layer) + "\n"
         return res
 
-   # def feed_forward():
-
+def feed_forward(A_prev : np.ndarray, W : np.ndarray, b : np.ndarray):
+        A = np.dot(W, A_prev) + b
+        return A
+    
