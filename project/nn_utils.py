@@ -18,56 +18,48 @@ def tanh(x):
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
-class Node:
-    ''' 
-        The Node class represents each vertex of the graph 
-        The attribute value represents the stored data
-        The list of neighbors attribute represents the vertices with which exists a connection 
-    '''
-    def __init__(self, weight, bias):
-        self.weight = weight
-        self.bias = bias        
-    
-    def __str__(self):    
-        return f" weight: {self.weight}, bias: {self.bias}"
 
 class Layer:
     '''
         The Layer class represents a layer of the neural network.
         It has a list of Nodes
     '''
-    def __init__(self, nodes = None):
-        if nodes is None:
-            self.nodes = []
-        else:
-            self.nodes = nodes
-    
-    def add_node(self, node = None):
-        if node is None:
-            print(f'WARNING: Trying to add NONE Node')
-        else:
-            self.nodes.append(node)
-            
+    def __init__(self, weights: np.ndarray = None, biases: np.ndarray = None):
+        
+        if weights is not None and biases is not None:
+            if weights.shape[0] != biases.shape[0]:
+                print("ERROR: biases and weights have different dimensions")
+                return
+        self.weights = weights
+        self.biases = biases
+        
+    def add_neuron(self, neuron_weights: np.ndarray = None, neuron_bias: int = None):
+        if neuron_weights is not None:
+            if len(neuron_weights.shape) > 1:
+                print("ERROR: Trying to append more than a neuron")
+                return
+        
+        np.append(self.weights, neuron_weights) 
+        np.append(self.biases, neuron_bias)
+        
     def __len__(self):
-        return len(self.nodes)
+        return len(self.biases)
 
     def __str__(self):
         out_str = ""
-        for pos, node in enumerate(self.nodes):
-            out_str += f"node {pos} -> " + str(node) + "\n"
+        for pos, weights in enumerate(el for el in self.weights if el is not None):
+            out_str += f"node {pos} weights = " + str(weights) + f", bias = {self.biases[pos]}\n"
         return out_str
 
 class NeuralNetwork:
     '''
         NeuralNetwork class contains a list of Layers and definition of all the parameters
     '''
-
     def __init__(self, layers = None):
         if layers is None:
             self.layers = []
         else:
             self.layers = layers
-
 
     ''' Add a new layer in the network. If the position is not specified, it is appended'''
     def add_layer(self, layer, pos = None):
