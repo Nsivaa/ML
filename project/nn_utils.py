@@ -22,10 +22,10 @@ def sigmoid(x):
 class Layer:
     '''
         The Layer class represents a layer of the neural network.
-        It has a list of Nodes
+        It has a ndarray of weights and an ndarray of biases
     '''
     def __init__(self, weights: np.ndarray = None, biases: np.ndarray = None, is_input = False):    
-        if not is_input:
+        if not is_input: #if the layer is an input layer we skip the dimension constraint check
             if weights is not None and biases is not None and weights.shape[1] != biases.shape[0]:
                 print("ERROR: biases and weights have different dimensions")
                 return
