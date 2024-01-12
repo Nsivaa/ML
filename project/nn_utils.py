@@ -27,7 +27,7 @@ class Layer:
     def __init__(self, weights: np.ndarray = None, biases: np.ndarray = None):
         
         if weights is not None and biases is not None:
-            if weights.shape[0] != biases.shape[0]:
+            if weights.shape[1] != biases.shape[0]:
                 print("ERROR: biases and weights have different dimensions")
                 return
         self.weights = weights
@@ -55,18 +55,17 @@ class NeuralNetwork:
     '''
         NeuralNetwork class contains a list of Layers and definition of all the parameters
     '''
-    def __init__(self, layers = None):
-        if layers is None:
-            self.layers = []
-        else:
-            self.layers = layers
+    def __init__(self, input_layer: np.ndarray = None, hidden_layers: np.ndarray = None):
+    
+        self.input_layer = input_layer
+        self.hidden_layers = hidden_layers
 
     ''' Add a new layer in the network. If the position is not specified, it is appended'''
     def add_layer(self, layer, pos = None):
         if pos is None:
-            self.layers.append(layer)
+            self.hidden_layers.append(layer)
         else:
-            self.layers.insert(pos, layer)
+            self.hidden_layers.insert(pos, layer)
 
     '''Return the number of nodes of the network'''
     def __len__(self):
@@ -77,8 +76,8 @@ class NeuralNetwork:
 
     ''' Print the nodes '''
     def __str__(self):
-        res = ""
-        for pos, layer in enumerate(self.layers):
+        res = str(self.input_layer)
+        for pos, layer in enumerate(self.hidden_layers):
             res += f"LAYER {pos} \n" + str(layer) + "\n"
         return res
 
