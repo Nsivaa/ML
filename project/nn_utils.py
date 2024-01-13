@@ -22,28 +22,29 @@ def sigmoid(x):
 class Layer:
     '''
         The Layer class represents a layer of the neural network.
-        It has a ndarray of weights and an ndarray of biases
+        It has a ndarray of weights and an ndarray of biases, and a boolean "is_input" attribute 
     '''
     def __init__(self, weights: np.ndarray = None, biases: np.ndarray = None, is_input = False):    
         if not is_input: #if the layer is an input layer we skip the dimension constraint check
+            self.is_input = False
+
             if weights is not None and biases is not None and weights.shape[0] != biases.shape[0]:
                 print("ERROR: biases and weights have different dimensions")
                 return
-            
-        if weights is None:
-            self.weights = np.ndarray(0,0)
-
         else:
-            self.weights = weights
+            self.is_input = True
+        
+        self.weights = weights
+        if self.weights is None:
+            self.weights = np.empty([0,0])
 
-        if biases is None:
-            self.biases = np.ndarray(0)
-
-        else:
-            self.biases = biases
+        self.biases = biases
+        if self.biases is None and not self.is_input: 
+            self.biases = np.empty([0])
 
         return
-        
+    
+    ''' TODO: add weight matrix dimension check
     def add_neuron(self, neuron_weights: np.ndarray = None, neuron_bias: int = None):
         if neuron_weights is not None:
             if len(neuron_weights.shape) > 1:
@@ -52,9 +53,10 @@ class Layer:
         
         np.append(self.weights, neuron_weights) 
         np.append(self.biases, neuron_bias)
-        
-    def __len__(self):
-        
+    '''
+
+    def __len__(self): #returns the number of nodes
+     
         if self.biases is not None:
             return len(self.biases)
         elif self.weights is not None:
@@ -62,43 +64,48 @@ class Layer:
         return 0
 
     def __str__(self):
+
         out_str = ""
-        for pos, weights in enumerate(el for el in self.weights if el is not None):
-            out_str += f"NODE {pos} WEIGHTS = " + str(weights) + f", BIAS = {self.biases[pos]}\n"
+        if self.is_input:
+            for pos, weights in enumerate(el for el in self.weights if el is not None):
+                out_str += f"NODE {pos} VALUES = {str(weights)} \n"  
+        
+        else: 
+            for pos, weights in enumerate(el for el in self.weights if el is not None):
+                out_str += f"NODE {pos} WEIGHTS = str(weights), BIAS = {self.biases[pos]}\n"
+
         return out_str
 
 class NeuralNetwork:
     '''
-        NeuralNetwork class contains a list of Layers and definition of all the parameters
+        NeuralNetwork class contains:
+        input_layer : Layer object
+        hidden_layers: list of Layer objects
+        output_layer: Layer object
     '''
     def __init__(self, input_layer: Layer = None, hidden_layers: list = None, output_layer : Layer = None):
         
-        if input_layer is not None:
-            self.input_layer = input_layer
+        self.input_layer = input_layer
+        self.hidden_layers = hidden_layers
+        self.output_layer = output_layer
 
-        else:
-            self.input_layer = np.ndarray(0)
-
+        if self.input_layer is None:
+            self.input_layer = Layer() #Empty layer
         
-        if hidden_layers is not None:
-            self.hidden_layers = hidden_layers
-
-        else:
+        if hidden_layers is None:
             self.hidden_layers = []
         
-        if output_layer is not None:
-            self.output_layer = output_layer
-        else:
-            self.output_layer = np.ndarray(0)
+        if output_layer is None:
+            self.output_layer = Layer()
 
         return
 
     def add_input_layer(self, n_neurons : int = None):
-        if self.input_layer is not None and self.input_layer.size > 0:
+        if self.input_layer is not None and self.input_layer.weights.size > 0:
             print("Warning: input layer already present. Overwriting")
+        
         weights = np.random.rand(n_neurons)
-        biases = np.random.rand(n_neurons)
-        input_layer = Layer(weights=weights, biases=biases, is_input=True)
+        input_layer = Layer(weights=weights, biases=None, is_input=True)
         self.input_layer = input_layer
         return
     ''' 
@@ -122,7 +129,7 @@ class NeuralNetwork:
         return
         
     def add_output_layer(self, n_neurons : int = None):
-        if self.output_layer is not None and self.output_layer.size > 0:
+        if self.output_layer is not None and len(self.output_layer) > 0:
             print("Warning: output layer already present. Overwriting")
 
         if self.hidden_layers is None or len(self.hidden_layers) == 0:
@@ -135,6 +142,28 @@ class NeuralNetwork:
         self.output_layer = output_layer
         return
     
+
+    def neur_feed_forward(self, A_prev : np.ndarray, W : np.ndarray, b : np.ndarray):
+            A = np.dot(W, A_prev) + b
+            return A
+
+    def train(self, data: pd.DataFrame):
+        for row in data.itertuples(index = False, name = None): #iterrows instead??
+            self.input_layer.weights = np.asarray(row) 
+            
+            #FIRST HIDDEN LAYER TAKES WEIGHTS FROM INPUT LAYER
+            for neur in zip(np.nditer(self.hidden_layers[0].weights), np.nditer(self.hidden_layers[0].biases)):
+                    res = relu(self.neur_feed_forward(self.input_layer.weights.shape[0], neur[0], neur[1]))
+                    #neur[0]
+                    print(res)
+            '''
+            for layer in self.hidden_layers:
+
+                for neur in zip(layer.weights.shape[0], layer.biases.shape[0]):
+                    res = relu(self.neur_feed_forward())
+            '''
+        return
+
     '''Return the number of nodes of the network'''
     def __len__(self):
         res = 0
@@ -174,7 +203,4 @@ class NeuralNetwork:
 
         return res
 
-def feed_forward(A_prev : np.ndarray, W : np.ndarray, b : np.ndarray):
-        A = np.dot(W, A_prev) + b
-        return A
     
