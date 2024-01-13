@@ -64,25 +64,33 @@ class Layer:
     def __str__(self):
         out_str = ""
         for pos, weights in enumerate(el for el in self.weights if el is not None):
-            out_str += f"node {pos} weights = " + str(weights) + f", bias = {self.biases[pos]}\n"
+            out_str += f"NODE {pos} WEIGHTS = " + str(weights) + f", BIAS = {self.biases[pos]}\n"
         return out_str
 
 class NeuralNetwork:
     '''
         NeuralNetwork class contains a list of Layers and definition of all the parameters
     '''
-    def __init__(self, input_layer: Layer = None, hidden_layers: list = None):
+    def __init__(self, input_layer: Layer = None, hidden_layers: list = None, output_layer : Layer = None):
         
-        if input_layer is None:
-            self.input_layer = np.ndarray(0)
-        else:
+        if input_layer is not None:
             self.input_layer = input_layer
+
+        else:
+            self.input_layer = np.ndarray(0)
+
         
         if hidden_layers is not None:
             self.hidden_layers = hidden_layers
 
         else:
             self.hidden_layers = []
+        
+        if output_layer is not None:
+            self.output_layer = output_layer
+        else:
+            self.output_layer = np.ndarray(0)
+
         return
 
     def add_input_layer(self, n_neurons : int = None):
@@ -113,6 +121,20 @@ class NeuralNetwork:
         self.hidden_layers.insert(pos, layer)
         return
         
+    def add_output_layer(self, n_neurons : int = None):
+        if self.output_layer is not None and self.output_layer.size > 0:
+            print("Warning: output layer already present. Overwriting")
+
+        if self.hidden_layers is None or len(self.hidden_layers) == 0:
+            print("ERROR: no hidden layers, aborting")
+            return
+        
+        weights = np.random.rand(n_neurons, len(self.hidden_layers[-1]))
+        biases = np.random.rand(n_neurons)
+        output_layer = Layer(weights=weights, biases=biases, is_input=False)
+        self.output_layer = output_layer
+        return
+    
     '''Return the number of nodes of the network'''
     def __len__(self):
         res = 0
@@ -122,8 +144,8 @@ class NeuralNetwork:
         if self.hidden_layers is not None:
             res += len(self.hidden_layers)
         
-        #if self.output_layer is not None:
-        #    res+= 1
+        if self.output_layer is not None:
+            res+= 1
 
         return res
 
@@ -136,16 +158,20 @@ class NeuralNetwork:
             for layer in self.hidden_layers:
                 res += len(layer)
 
-        #if self.output_layer is not None:
-        #    res+= len(self.output_layer)
+        if self.output_layer is not None:
+            res+= len(self.output_layer)
 
         return res
 
     ''' Print the nodes '''
     def __str__(self):
-        res = str(self.input_layer)
+        res = f"INPUT LAYER: \n {str(self.input_layer)}\n "
+
         for pos, layer in enumerate(self.hidden_layers):
             res += f"LAYER {pos} \n" + str(layer) + "\n"
+        res += "\n"
+        res += f"OUTPUT LAYER: \n {str(self.output_layer)} "
+
         return res
 
 def feed_forward(A_prev : np.ndarray, W : np.ndarray, b : np.ndarray):
