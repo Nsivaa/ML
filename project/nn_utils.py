@@ -26,12 +26,23 @@ class Layer:
     '''
     def __init__(self, weights: np.ndarray = None, biases: np.ndarray = None, is_input = False):    
         if not is_input: #if the layer is an input layer we skip the dimension constraint check
-            if weights is not None and biases is not None and weights.shape[1] != biases.shape[0]:
+            if weights is not None and biases is not None and weights.shape[0] != biases.shape[0]:
                 print("ERROR: biases and weights have different dimensions")
                 return
             
-        self.weights = weights
-        self.biases = biases
+        if weights is None:
+            self.weights = np.ndarray(0,0)
+
+        else:
+            self.weights = weights
+
+        if biases is None:
+            self.biases = np.ndarray(0)
+
+        else:
+            self.biases = biases
+
+        return
         
     def add_neuron(self, neuron_weights: np.ndarray = None, neuron_bias: int = None):
         if neuron_weights is not None:
@@ -43,7 +54,12 @@ class Layer:
         np.append(self.biases, neuron_bias)
         
     def __len__(self):
-        return len(self.biases)
+        
+        if self.biases is not None:
+            return len(self.biases)
+        elif self.weights is not None:
+            return self.weights.shape[0]
+        return 0
 
     def __str__(self):
         out_str = ""
@@ -57,15 +73,20 @@ class NeuralNetwork:
     '''
     def __init__(self, input_layer: Layer = None, hidden_layers: list = None):
         
-        self.input_layer = input_layer
+        if input_layer is None:
+            self.input_layer = np.ndarray(0)
+        else:
+            self.input_layer = input_layer
+        
         if hidden_layers is not None:
             self.hidden_layers = hidden_layers
+
         else:
             self.hidden_layers = []
         return
 
     def add_input_layer(self, n_neurons : int = None):
-        if self.input_layer is not None:
+        if self.input_layer is not None and self.input_layer.size > 0:
             print("Warning: input layer already present. Overwriting")
         weights = np.random.rand(n_neurons)
         biases = np.random.rand(n_neurons)
@@ -82,10 +103,10 @@ class NeuralNetwork:
                 pos = len(self.hidden_layers)
 
         if len(self.hidden_layers) == 0 or self.hidden_layers is None:
-            weights = np.random.rand(len(self.input_layer), n_neurons)
+            weights = np.random.rand(n_neurons, len(self.input_layer))
 
         else:
-            weights = np.random.rand(len(self.hidden_layers[pos - 1]), n_neurons)
+            weights = np.random.rand(n_neurons, len(self.hidden_layers[pos - 1]))
 
         biases = np.random.rand(n_neurons)
         layer = Layer(weights, biases)
