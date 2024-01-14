@@ -33,7 +33,7 @@ class Layer:
 
         else:
             self.weights = 0,1 * np.random.randn(n_inputs, n_neurons)
-
+            self.weights = self.weights[1]
         self.biases = np.zeros((1, n_neurons))
         return
     
@@ -58,12 +58,18 @@ class Layer:
     def __str__(self):
 
         out_str = ""
-
-        for pos, weights in enumerate(el for el in self.weights[1] if el is not None):
-            out_str += f"NODE {pos} WEIGHTS = {str(weights[pos])}, BIAS = {self.biases[0][pos]}\n"
-
+        for pos, neur in enumerate(zip(self.weights.T, self.biases[0])):
+            out_str += f"NODE {pos} WEIGHTS = "
+            for w in neur[0]:
+                out_str += f"{w}, "
+            out_str += f" BIAS = {neur[1]}\n"
         return out_str
 
+'''
+        for pos, weights in enumerate(el for el in self.weights[1] if el is not None):
+            out_str += f"NODE {pos} WEIGHTS = {str(weights[pos])}, BIAS = {self.biases[0][pos]}\n"
+'''
+        
 class NeuralNetwork:
     '''
         NeuralNetwork class contains:
@@ -151,7 +157,7 @@ class NeuralNetwork:
     ''' Print the nodes '''
     
     def __str__(self):
-        res = f"INPUT LAYER: \n {str(self.input_layer)}\n "
+        res = f"INPUT LAYER: \n{str(self.input_layer)}\n"
 
         for pos, layer in enumerate(self.hidden_layers):
             res += f"LAYER {pos} \n" + str(layer) + "\n"
