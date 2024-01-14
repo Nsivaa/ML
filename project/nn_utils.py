@@ -58,7 +58,7 @@ class Layer:
     def __str__(self):
 
         out_str = ""
-        for pos, neur in enumerate(zip(self.weights.T, self.biases[0])):
+        for  pos, neur in enumerate(zip(self.weights.T, self.biases[0])):
             out_str += f"NODE {pos} WEIGHTS = "
             for w in neur[0]:
                 out_str += f"{w}, "
@@ -162,7 +162,7 @@ class NeuralNetwork:
         for pos, layer in enumerate(self.hidden_layers):
             res += f"LAYER {pos} \n" + str(layer) + "\n"
         res += "\n"
-       # res += f"OUTPUT LAYER: \n {str(self.output_layer)} "
+        res += f"OUTPUT LAYER: \n{str(self.output_layer)} "
 
         return res
     
