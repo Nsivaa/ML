@@ -53,7 +53,7 @@ class Layer:
 
     def __len__(self): #returns the number of nodes
      
-        return len(self.biases)
+        return len(self.biases[0])
 
     def __str__(self):
 
@@ -126,7 +126,7 @@ class NeuralNetwork:
             '''
         return
 
-    '''Return the number of nodes of the network'''
+    '''Return the number of layers of the network'''
     def __len__(self):
         res = 0
         if self.input_layer is not None:
@@ -142,15 +142,10 @@ class NeuralNetwork:
 
     def number_of_nodes(self):
         res = 0
-        if self.input_layer is not None:
-            res += len(self.input_layer)
-        
-        if self.hidden_layers is not None:
-            for layer in self.hidden_layers:
-                res += len(layer)
-
-        if self.output_layer is not None:
-            res+= len(self.output_layer)
+        res += len(self.input_layer)
+        for layer in self.hidden_layers:
+            res += len(layer)
+        res += len(self.output_layer)
 
         return res
 
