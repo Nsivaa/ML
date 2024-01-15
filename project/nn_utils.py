@@ -1,11 +1,14 @@
 import numpy as np
 import pandas as pd
 import matplotlib as plt
-
+#TODO: cambiare bias in bias[0](in modo da avere un vettore e non una matrice con una riga) e modificare tutto di conseguenza
 '''Returns the max among x and 0'''
 def relu(x):
     return x * (x > 0)    
-
+def Drelu(x):
+    if x >0:
+        return 1
+    return 0
 '''If the value is greater than 0, we leave it as is, else we replace it with value * 0,01'''
 def leaky_relu(x):
     if x > 0:
@@ -18,15 +21,26 @@ def tanh(x):
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
+def mse(netOut:np.ndarray, sampleOut:np.ndarray):
+    s=0
+    for i in np.arange(0,netOut.size):
+        s+=np.square(netOut[i]-sampleOut[i])
+    return 0.5*s
+
+
 np.random.seed(0)
 
 class Layer:
     '''
         The Layer class represents a layer of the neural network.
-        It has a ndarray of weights and an ndarray of biases, and a boolean "is_input" attribute 
+        It has a ndarray of weights and an ndarray of biases, and a boolean "is_input" attribute
+        n_input rappresents the number of neurons of the precedent layer which entails the number of weights of neuron in the layer
+        The input layer is modelled as a layer with 1 input and n neurons so its weights are a single row and are actually the input values
     '''
     def __init__(self, n_inputs: int = 0, n_neurons: int = 0, is_input : bool = False):    
         self.is_input = is_input
+        self.n_input=n_inputs
+        self.n_neurons=n_neurons
 
         if n_neurons == 0:
             self.weights = np.empty((0,0))
@@ -35,6 +49,9 @@ class Layer:
             self.weights = 0,1 * np.random.randn(n_inputs, n_neurons)
             self.weights = self.weights[1]
         self.biases = np.zeros((1, n_neurons))
+        if not(self.is_input):
+            self.acc_bias_gradients=np.zeros(n_neurons)
+            self.acc_weight_gradients = np.zeros((n_inputs,n_neurons))
         return
     
     ''' 
@@ -48,9 +65,11 @@ class Layer:
         np.append(self.biases, neuron_bias)
     '''
 
+#output will be a numpy ndarray with dimension (n)
+#ndarray of shape (1,n) is different from ndarray of shape (n)
     def feed_forward(self, inputs: np.ndarray):
         output = np.dot(inputs, self.weights) + self.biases
-        self.output = np.maximum(0, output)
+        self.output = relu(output)[0]
 
     def __len__(self): #returns the number of nodes
         return len(self.biases[0])
@@ -84,6 +103,7 @@ class NeuralNetwork:
             self.hidden_layers = []
         self.output_layer = output_layer
 
+
         return
 
     def add_input_layer(self, n_neurons : int = 0):
@@ -105,21 +125,112 @@ class NeuralNetwork:
         
     def add_output_layer(self, n_inputs : int = 0, n_neurons : int = 0):
         self.output_layer = Layer(n_inputs, n_neurons, is_input = False)
-        return 
-
-    def train(self, data: pd.DataFrame):
-        for row in data.itertuples(index = False, name = None): 
-            self.input_layer.weights = np.asarray(row) #FIRST HIDDEN LAYER TAKES WEIGHTS FROM INPUT LAYER
-
-            self.hidden_layers[0].feed_forward(self.input_layer.weights)
-
-            for pos, layer in enumerate(self.hidden_layers[1:]):
-
-                layer.feed_forward(self.hidden_layers[pos].output)
-            
-            self.output_layer.feed_forward(self.hidden_layers[-1].output)
 
         return
+
+#restituisce il risultato della loss function calcolato per i pesi correnti e l'input (row,label)
+    def forwardPropagation(self,row:tuple,label:tuple):
+        self.input_layer.output = np.asarray(row)
+        #FIRST HIDDEN LAYER TAKES WEIGHTS FROM INPUT LAYER
+        self.hidden_layers[0].feed_forward(self.input_layer.output)
+        for pos, layer in enumerate(self.hidden_layers[1:]):
+            layer.feed_forward(self.hidden_layers[pos].output)
+
+        self.output_layer.feed_forward(self.hidden_layers[-1].output)
+
+        return mse(self.output_layer.output,np.array(label))
+
+#tengo due versioni di una matrice di gradienti per i pesi ed un vettore di gradienti per i bias
+#una versione è riservata ad i calcoli relativi ad uno specifico smple, mentre la versione "acc_" serve per il calolo del gradiente tenendo conto di tutti i samples
+
+    def train(self, data: pd.DataFrame,labels: pd.DataFrame, eta = 0.2,epochs=1):
+        totErr=0
+        for row,label in zip(data.itertuples(index = False, name = None),labels.itertuples(index=False,name=None)):
+            totErr+=self.forwardPropagation(row,label)
+            totErr/=data.shape[0]
+        print(f"total Error pre-training = {totErr}")
+        for epoch in np.arange(1,epochs+1):
+            for layer in np.arange(len(self.hidden_layers),-1,-1)-1:
+                if layer == -1:
+                    layer=self.output_layer
+                else:
+                    layer=self.hidden_layers[layer]
+                layer.acc_bias_gradients=np.zeros(layer.n_neurons)
+                layer.acc_weight_gradients = np.zeros((layer.n_input,layer.n_neurons))
+
+            totErr=0
+            n=data.shape[0]
+            for row,label in zip(data.itertuples(index = False, name = None),labels.itertuples(index=False,name=None)):
+                #Forward propagation
+                self.forwardPropagation(row,label)
+                #backward propagation
+                #output layer
+                self.output_layer.bias_gradients=np.zeros(self.output_layer.n_neurons)
+                self.output_layer.weight_gradients = np.zeros((self.output_layer.n_input,self.output_layer.n_neurons))
+                #per ogni neurone del layer calcolo delta, gradiente dei pesi e gradiente del bias
+                #considero delta del neurone il corrispettivo valore del gradiente (sono lo stesso valore)
+                for i in np.arange(0,self.output_layer.n_neurons):
+                    #i è l'i-esimo neurone del layer
+                    #delta_i = (d_i - o_i)
+                    delta= (label[i]-self.output_layer.output[i])
+                    self.output_layer.bias_gradients[i]=delta
+                    for j in np.arange(0,self.output_layer.n_input):
+                        #gradiente_w_j,i = bias_i * o_j
+                        self.output_layer.weight_gradients[j][i]= delta * self.hidden_layers[-1].output[j]
+                self.output_layer.acc_bias_gradients+=self.output_layer.bias_gradients
+                self.output_layer.acc_weight_gradients+=self.output_layer.bias_gradients
+                #hidden layers
+                for layer in np.arange(len(self.hidden_layers),0,-1)-1:
+                    if layer == len(self.hidden_layers)- 1:
+                        #ultimo hidden layer
+                        next_layer=self.output_layer
+                    else:
+                        next_layer=self.hidden_layers[layer+1]
+                    if layer == 0:
+                        prec_layer=self.input_layer
+                    else:
+                        prec_layer=self.hidden_layers[layer-1]
+                    layer=self.hidden_layers[layer]
+                    layer.bias_gradients=np.zeros(layer.n_neurons)
+                    layer.weight_gradients = np.zeros((layer.n_input,layer.n_neurons))
+                    #per ogni neurone del layer calcolo delta, gradiente dei pesi e gradiente del bias
+                    #considero delta del neurone il corrispettivo valore del gradiente (sono lo stesso valore)
+                    for i in np.arange(0,layer.n_neurons):
+                        #i è l'i-esimo neurone del layer
+                        #delta_i = (sommatoria(per tutti i neuroni k del layer successivo)(delta_k * w_i,k)* Drelu(net(i))
+                        sum=0
+                        for k in np.arange(0,next_layer.n_neurons):
+                            sum+=next_layer.bias_gradients[k]*next_layer.weights[i][k]
+                        delta= sum * Drelu(np.dot(prec_layer.output,layer.weights[:,i]) + layer.biases[0][i])
+                        layer.bias_gradients[i]=delta
+                        for j in np.arange(0,layer.n_input):
+                            #gradiente_w_j,i = bias_i * o_j
+                            layer.weight_gradients[j][i]= delta * prec_layer.output[j]
+
+                    layer.acc_bias_gradients+=layer.bias_gradients
+                    layer.acc_weight_gradients+=layer.bias_gradients
+
+
+
+            #aggiornamento dei pesi
+            for layer in np.arange(len(self.hidden_layers),-1,-1)-1:
+                if layer == -1:
+                    layer=self.output_layer
+                else:
+                    layer=self.hidden_layers[layer]
+                layer.weights+=eta*(layer.acc_weight_gradients/n)
+                layer.biases+= eta*(layer.acc_bias_gradients/n)
+
+            #new Total error with MSE
+            for row,label in zip(data.itertuples(index = False, name = None),labels.itertuples(index=False,name=None)):
+                totErr+=self.forwardPropagation(row,label)
+                totErr/=n
+            print(n)
+            print(f"Epoch = {epoch}, total Error post-training = {totErr}")
+            #print(self)
+        print("end Training")
+        return
+
 
     '''Return the number of layers of the network'''
     def __len__(self):
