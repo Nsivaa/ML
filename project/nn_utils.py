@@ -48,27 +48,25 @@ class Layer:
         np.append(self.biases, neuron_bias)
     '''
 
-    def feed_forward(self, inputs):
-        self.output = np.dot(inputs, self.weights) + self.biases
+    def feed_forward(self, inputs: np.ndarray):
+        output = np.dot(inputs, self.weights) + self.biases
+        self.output = np.maximum(0, output)
 
     def __len__(self): #returns the number of nodes
-     
         return len(self.biases[0])
-
+    
     def __str__(self):
-
         out_str = ""
         for  pos, neur in enumerate(zip(self.weights.T, self.biases[0])):
             out_str += f"NODE {pos} WEIGHTS = "
-            for w in neur[0]:
-                out_str += f"{w}, "
+            if type(neur[0]) == np.float64: #If weights is a 1D array (which happens in the first layer), its .T (transpose) returns a float and not an array
+                for w in self.weights:      # So we iterate on the non-transposed version  
+                    out_str += f"{w}, "
+            else:
+                for w in neur[0]:
+                    out_str += f"{w}, "
             out_str += f" BIAS = {neur[1]}\n"
         return out_str
-
-'''
-        for pos, weights in enumerate(el for el in self.weights[1] if el is not None):
-            out_str += f"NODE {pos} WEIGHTS = {str(weights[pos])}, BIAS = {self.biases[0][pos]}\n"
-'''
         
 class NeuralNetwork:
     '''
@@ -77,10 +75,13 @@ class NeuralNetwork:
         hidden_layers: list of Layer objects
         output_layer: Layer object
     '''
-    def __init__(self, input_layer: Layer = None, hidden_layers: list = [], output_layer : Layer = None):
+    def __init__(self, input_layer: Layer = None, hidden_layers: list = None, output_layer : Layer = None):
         
         self.input_layer = input_layer
         self.hidden_layers = hidden_layers
+
+        if hidden_layers is None:
+            self.hidden_layers = []
         self.output_layer = output_layer
 
         return
@@ -105,25 +106,19 @@ class NeuralNetwork:
     def add_output_layer(self, n_inputs : int = 0, n_neurons : int = 0):
         self.output_layer = Layer(n_inputs, n_neurons, is_input = False)
         return 
-    
-    def neur_feed_forward(self, A_prev : np.ndarray, W : np.ndarray, b : np.ndarray):
-            A = np.dot(W, A_prev) + b
-            return A
 
     def train(self, data: pd.DataFrame):
-        for row in data.itertuples(index = False, name = None): #iterrows instead?? 
-            self.input_layer.weights = np.asarray(row) 
-            
-            #FIRST HIDDEN LAYER TAKES WEIGHTS FROM INPUT LAYER #
-            for neur in zip(np.nditer(self.hidden_layers[0].weights), np.nditer(self.hidden_layers[0].biases)):
-                    self.hidden_layers[0].weights = self.neur_feed_forward(self.input_layer.weights.shape[0], neur[0].T, neur[1])
+        for row in data.itertuples(index = False, name = None): 
+            self.input_layer.weights = np.asarray(row) #FIRST HIDDEN LAYER TAKES WEIGHTS FROM INPUT LAYER
 
-            '''
+            self.hidden_layers[0].feed_forward(self.input_layer.weights)
+
             for pos, layer in enumerate(self.hidden_layers[1:]):
 
-                for neur in zip(np.nditer(layer.weights), np.nditer(layer.biases)):
-                    neur[0] = self.neur_feed_forward(self.input_layer.weights.shape[0], neur[0], neur[1])
-            '''
+                layer.feed_forward(self.hidden_layers[pos].output)
+            
+            self.output_layer.feed_forward(self.hidden_layers[-1].output)
+
         return
 
     '''Return the number of layers of the network'''
