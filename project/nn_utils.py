@@ -103,7 +103,6 @@ class NeuralNetwork:
             self.hidden_layers = []
         self.output_layer = output_layer
 
-
         return
 
     def add_input_layer(self, n_neurons : int = 0):
@@ -121,15 +120,15 @@ class NeuralNetwork:
 
         else:
             self.hidden_layers.insert(pos, layer)
+
         return
         
     def add_output_layer(self, n_inputs : int = 0, n_neurons : int = 0):
         self.output_layer = Layer(n_inputs, n_neurons, is_input = False)
-
         return
 
 #restituisce il risultato della loss function calcolato per i pesi correnti e l'input (row,label)
-    def forwardPropagation(self,row:tuple,label:tuple):
+    def forwardPropagation(self, row: tuple, label: tuple):
         self.input_layer.output = np.asarray(row)
         #FIRST HIDDEN LAYER TAKES WEIGHTS FROM INPUT LAYER
         self.hidden_layers[0].feed_forward(self.input_layer.output)
@@ -143,94 +142,104 @@ class NeuralNetwork:
 #tengo due versioni di una matrice di gradienti per i pesi ed un vettore di gradienti per i bias
 #una versione è riservata ad i calcoli relativi ad uno specifico smple, mentre la versione "acc_" serve per il calolo del gradiente tenendo conto di tutti i samples
 
-    def train(self, data: pd.DataFrame,labels: pd.DataFrame, eta = 0.2,epochs=1):
-        totErr=0
-        for row,label in zip(data.itertuples(index = False, name = None),labels.itertuples(index=False,name=None)):
-            totErr+=self.forwardPropagation(row,label)
-            totErr/=data.shape[0]
+    def train(self, data: pd.DataFrame,labels: pd.DataFrame, eta = 0.2, epochs = 1):
+        totErr = 0
+        for row,label in zip(data.itertuples(index = False, name = None),labels.itertuples(index = False, name = None)):
+            totErr += self.forwardPropagation(row,label)
+            totErr /= data.shape[0]
+
         print(f"total Error pre-training = {totErr}")
-        for epoch in np.arange(1,epochs+1):
-            for layer in np.arange(len(self.hidden_layers),-1,-1)-1:
+        for epoch in np.arange(1, epochs + 1):
+            for layer in np.arange(len(self.hidden_layers), -1, -1) -1:
                 if layer == -1:
                     layer=self.output_layer
+
                 else:
                     layer=self.hidden_layers[layer]
+
                 layer.acc_bias_gradients=np.zeros(layer.n_neurons)
                 layer.acc_weight_gradients = np.zeros((layer.n_input,layer.n_neurons))
 
-            totErr=0
-            n=data.shape[0]
-            for row,label in zip(data.itertuples(index = False, name = None),labels.itertuples(index=False,name=None)):
+            totErr = 0 
+            n = data.shape[0]
+            for row,label in zip(data.itertuples(index = False, name = None),labels.itertuples(index = False, name = None)):
                 #Forward propagation
                 self.forwardPropagation(row,label)
                 #backward propagation
                 #output layer
-                self.output_layer.bias_gradients=np.zeros(self.output_layer.n_neurons)
-                self.output_layer.weight_gradients = np.zeros((self.output_layer.n_input,self.output_layer.n_neurons))
+                self.output_layer.bias_gradients = np.zeros(self.output_layer.n_neurons)
+                self.output_layer.weight_gradients = np.zeros((self.output_layer.n_input, self.output_layer.n_neurons))
                 #per ogni neurone del layer calcolo delta, gradiente dei pesi e gradiente del bias
                 #considero delta del neurone il corrispettivo valore del gradiente (sono lo stesso valore)
                 for i in np.arange(0,self.output_layer.n_neurons):
                     #i è l'i-esimo neurone del layer
                     #delta_i = (d_i - o_i)
-                    delta= (label[i]-self.output_layer.output[i])
-                    self.output_layer.bias_gradients[i]=delta
+                    delta = (label[i] - self.output_layer.output[i])
+                    self.output_layer.bias_gradients[i] = delta
+
                     for j in np.arange(0,self.output_layer.n_input):
                         #gradiente_w_j,i = bias_i * o_j
-                        self.output_layer.weight_gradients[j][i]= delta * self.hidden_layers[-1].output[j]
-                self.output_layer.acc_bias_gradients+=self.output_layer.bias_gradients
-                self.output_layer.acc_weight_gradients+=self.output_layer.bias_gradients
+                        self.output_layer.weight_gradients[j][i] = delta * self.hidden_layers[-1].output[j]
+
+                self.output_layer.acc_bias_gradients += self.output_layer.bias_gradients
+                self.output_layer.acc_weight_gradients += self.output_layer.bias_gradients
                 #hidden layers
-                for layer in np.arange(len(self.hidden_layers),0,-1)-1:
-                    if layer == len(self.hidden_layers)- 1:
+                for layer in np.arange(len(self.hidden_layers), 0, -1) -1:
+                    if layer == len(self.hidden_layers) -1:
                         #ultimo hidden layer
-                        next_layer=self.output_layer
+                        next_layer = self.output_layer
+
                     else:
-                        next_layer=self.hidden_layers[layer+1]
+                        next_layer = self.hidden_layers[layer+1]
+
                     if layer == 0:
-                        prec_layer=self.input_layer
+                        prec_layer = self.input_layer
+
                     else:
-                        prec_layer=self.hidden_layers[layer-1]
-                    layer=self.hidden_layers[layer]
-                    layer.bias_gradients=np.zeros(layer.n_neurons)
-                    layer.weight_gradients = np.zeros((layer.n_input,layer.n_neurons))
+                        prec_layer = self.hidden_layers[layer-1]
+
+                    layer = self.hidden_layers[layer]
+                    layer.bias_gradients = np.zeros(layer.n_neurons)
+                    layer.weight_gradients = np.zeros((layer.n_input, layer.n_neurons))
                     #per ogni neurone del layer calcolo delta, gradiente dei pesi e gradiente del bias
                     #considero delta del neurone il corrispettivo valore del gradiente (sono lo stesso valore)
-                    for i in np.arange(0,layer.n_neurons):
+                    for i in np.arange(0, layer.n_neurons):
                         #i è l'i-esimo neurone del layer
                         #delta_i = (sommatoria(per tutti i neuroni k del layer successivo)(delta_k * w_i,k)* Drelu(net(i))
-                        sum=0
-                        for k in np.arange(0,next_layer.n_neurons):
-                            sum+=next_layer.bias_gradients[k]*next_layer.weights[i][k]
-                        delta= sum * Drelu(np.dot(prec_layer.output,layer.weights[:,i]) + layer.biases[0][i])
-                        layer.bias_gradients[i]=delta
-                        for j in np.arange(0,layer.n_input):
+                        sum = 0
+                        for k in np.arange(0, next_layer.n_neurons):
+                            sum += next_layer.bias_gradients[k]*next_layer.weights[i][k]
+
+                        delta = sum * Drelu(np.dot(prec_layer.output,layer.weights[:,i]) + layer.biases[0][i])
+                        layer.bias_gradients[i] = delta
+                        for j in np.arange(0, layer.n_input):
                             #gradiente_w_j,i = bias_i * o_j
-                            layer.weight_gradients[j][i]= delta * prec_layer.output[j]
+                            layer.weight_gradients[j][i] = delta * prec_layer.output[j]
 
-                    layer.acc_bias_gradients+=layer.bias_gradients
-                    layer.acc_weight_gradients+=layer.bias_gradients
-
-
+                    layer.acc_bias_gradients += layer.bias_gradients
+                    layer.acc_weight_gradients += layer.bias_gradients
 
             #aggiornamento dei pesi
-            for layer in np.arange(len(self.hidden_layers),-1,-1)-1:
+            for layer in np.arange(len(self.hidden_layers), -1, -1) -1:
                 if layer == -1:
-                    layer=self.output_layer
+                    layer = self.output_layer
+
                 else:
-                    layer=self.hidden_layers[layer]
-                layer.weights+=eta*(layer.acc_weight_gradients/n)
-                layer.biases+= eta*(layer.acc_bias_gradients/n)
+                    layer = self.hidden_layers[layer]
+
+                layer.weights += eta*(layer.acc_weight_gradients/n)
+                layer.biases += eta*(layer.acc_bias_gradients/n)
 
             #new Total error with MSE
-            for row,label in zip(data.itertuples(index = False, name = None),labels.itertuples(index=False,name=None)):
-                totErr+=self.forwardPropagation(row,label)
-                totErr/=n
+            for row,label in zip(data.itertuples(index = False, name = None),labels.itertuples(index = False, name = None)):
+                totErr += self.forwardPropagation(row, label)
+                totErr /= n
+
             print(n)
             print(f"Epoch = {epoch}, total Error post-training = {totErr}")
             #print(self)
         print("end Training")
         return
-
 
     '''Return the number of layers of the network'''
     def __len__(self):
