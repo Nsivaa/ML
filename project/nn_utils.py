@@ -338,17 +338,9 @@ class NeuralNetwork:
             totErr = self.mseTotError(data, labels)
             errors.append(totErr)
             print(f"Epoch = {epoch}, total Error post-training = {totErr}")
-            errors.append(totErr)
             if totErr > 10000:
-                for layer in np.arange(len(self.hidden_layers), -1, -1)-1:
-                    if layer == -1:
-                        layer = self.output_layer
-                    else:
-                        layer = self.hidden_layers[layer]
-                    print(layer.weights)
+                print(self)
 
-            # print(self)
-        # PLOT ()
         print("end Training")
         return errors
 
