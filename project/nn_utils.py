@@ -1,18 +1,23 @@
 import numpy as np
 import pandas as pd
-import matplotlib as plt
+
 # TODO: cambiare bias in bias[0](in modo da avere un vettore e non una matrice con una riga) e modificare tutto di conseguenza
 #TODO: cambiare nel codice relu e Drelu con leaky relu e dleaky relu ( al momento ho cambiato il corpo di drelu e relu)
+
 '''Returns the max among x and 0'''
 def relu(x):
     return np.where(x > 0, x, 0.01 * x)
+
 def Drelu(x):
     return np.where(x > 0, 1, 0.01 * 1)
+
 '''If the value is greater than 0, we leave it as is, else we replace it with value * 0,01'''
 def leaky_relu(x):
     return np.where(x > 0, x, 0.01 * x)
+
 def Dleaky_relu(x):
     return np.where(x > 0, 1, 0.01 * 1)
+
 def tanh(x):
     return np.tanh(x)
 
@@ -208,9 +213,11 @@ class NeuralNetwork:
 # tengo due versioni di una matrice di gradienti per i pesi ed un vettore di gradienti per i bias
 # una versione è riservata ad i calcoli relativi ad uno specifico smple, mentre la versione "acc_" serve per il calolo del gradiente tenendo conto di tutti i samples
 
-    def train(self, data: pd.DataFrame,labels: pd.DataFrame, eta = 0.2,epochs=1,clip_value=None):
+    def train(self, data: pd.DataFrame,labels: pd.DataFrame, eta = 0.2 ,epochs=1, clip_value=None):
+        errors = []
         totErr=self.mseTotError(data,labels)
         print(f"total Error pre-training = {totErr}")
+        errors.append(totErr)
         for epoch in np.arange(1,epochs+1):
 
             # tra un epoca e l'altra azzero gli accumulatori dei gradienti per ogni layer
@@ -249,7 +256,9 @@ class NeuralNetwork:
             # new Total error with MSE
             #debug per clipping
             totErr=self.mseTotError(data,labels)
+            errors.append(totErr)
             print(f"Epoch = {epoch}, total Error post-training = {totErr}")
+            errors.append(totErr)
             if totErr>10000:
                 for layer in np.arange(len(self.hidden_layers),-1,-1)-1:
                     if layer == -1:
@@ -259,8 +268,9 @@ class NeuralNetwork:
                     print(layer.weights)
 
             # print(self)
+        #PLOT ()
         print("end Training")
-        return
+        return errors
 
 
     '''Return the number of layers of the network'''
