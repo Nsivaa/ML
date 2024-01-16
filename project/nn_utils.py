@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # TODO: cambiare bias in bias[0](in modo da avere un vettore e non una matrice con una riga) e modificare tutto di conseguenza
 
@@ -74,6 +75,15 @@ def mse(netOut: np.ndarray, sampleOut: np.ndarray):
         s += np.square(netOut[i]-sampleOut[i])
     return 0.5*s
 
+
+def plot_loss(losses: np.ndarray):
+    iterations = np.arange(len(losses))
+    plt.title("Line graph")
+    plt.xlabel("Iterations")
+    plt.ylabel("Loss")
+    plt.plot(iterations, losses, color="green")
+    plt.show()
+
 # np.random.seed(0)
 
 
@@ -129,6 +139,12 @@ class Layer:
     def feed_forward(self, inputs: np.ndarray, act_fun: str):
         output = np.dot(inputs, self.weights) + self.biases[0]
         self.output = activation(output, act_fun)
+
+    def clip_gradients(self, clip_value):
+        self.acc_weight_gradients = np.clip(
+            self.acc_weight_gradients, -clip_value, clip_value)
+        self.acc_bias_gradients = np.clip(
+            self.bias_gradients, -clip_value, clip_value)
 
     def __len__(self):  # returns the number of nodes
         return len(self.biases[0])
@@ -272,6 +288,30 @@ class NeuralNetwork:
 # tengo due versioni di una matrice di gradienti per i pesi ed un vettore di gradienti per i bias
 # una versione è riservata ad i calcoli relativi ad uno specifico smple, mentre la versione "acc_" serve per il calolo del gradiente tenendo conto di tutti i samples
 
+    def reset_accumulators(self):
+        for layer in np.arange(len(self.hidden_layers), -1, -1)-1:
+            if layer == -1:
+                layer = self.output_layer
+            else:
+                layer = self.hidden_layers[layer]
+            layer.acc_bias_gradients = np.zeros(layer.n_neurons)
+            layer.acc_weight_gradients = np.zeros(
+                (layer.n_input, layer.n_neurons))
+
+    def update_weights(self, n: int, eta, clip_value=None):
+        for layer in np.arange(len(self.hidden_layers), -1, -1)-1:
+            if layer == -1:
+                layer = self.output_layer
+            else:
+                layer = self.hidden_layers[layer]
+
+             # clippo il gradiente per evitare gradient explosion
+            if clip_value:
+                layer.clip_gradients(clip_value)
+
+            layer.weights += eta*(layer.acc_weight_gradients/n)
+            layer.biases[0] += eta*(layer.acc_bias_gradients/n)
+
     def train(self, data: pd.DataFrame, labels: pd.DataFrame, eta=0.2, epochs=1, clip_value=None, act_fun: str = "relu"):
         errors = []
         totErr = self.mseTotError(data, labels, act_fun=act_fun)
@@ -280,15 +320,8 @@ class NeuralNetwork:
         for epoch in np.arange(1, epochs+1):
 
             # tra un epoca e l'altra azzero gli accumulatori dei gradienti per ogni layer
-            for layer in np.arange(len(self.hidden_layers), -1, -1)-1:
-                if layer == -1:
-                    layer = self.output_layer
-                else:
-                    layer = self.hidden_layers[layer]
-                layer.acc_bias_gradients = np.zeros(layer.n_neurons)
-                layer.acc_weight_gradients = np.zeros(
-                    (layer.n_input, layer.n_neurons))
-            n = data.shape[0]
+            self.reset_accumulators()
+
             for row, label in zip(data.itertuples(index=False, name=None), labels.itertuples(index=False, name=None)):
                 # Forward propagation
                 self.forwardPropagation(row, label, act_fun=act_fun)
@@ -298,20 +331,7 @@ class NeuralNetwork:
                 self.hiddenLayerBackpropagation(act_fun)
 
             # aggiornamento dei pesi
-            for layer in np.arange(len(self.hidden_layers), -1, -1)-1:
-                if layer == -1:
-                    layer = self.output_layer
-                else:
-                    layer = self.hidden_layers[layer]
-
-                 # clippo il gradiente per evitare gradient explosion
-                if clip_value != None:
-                    layer.acc_weight_gradients = np.clip(
-                        layer.acc_weight_gradients, -clip_value, clip_value)
-                    layer.acc_bias_gradients = np.clip(
-                        layer.bias_gradients, -clip_value, clip_value)
-                layer.weights += eta*(layer.acc_weight_gradients/n)
-                layer.biases[0] += eta*(layer.acc_bias_gradients/n)
+            self.update_weights(data.shape[0], eta, clip_value)
 
             # new Total error with MSE
             # debug per clipping
