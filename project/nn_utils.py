@@ -51,6 +51,7 @@ class Layer:
         elif self.is_input:
             self.weights=np.zeros(n_neurons)
         else:
+
             self.weights = 0,1 * np.random.randn(n_inputs, n_neurons)
             self.weights = self.weights[1]
             #xavier normalization for weight inizialization
