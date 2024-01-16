@@ -69,6 +69,7 @@ def derivative(act_fun: str, arr: np.ndarray):
         return None
 
 
+
 def mse(netOut: np.ndarray, sampleOut: np.ndarray):
     s = 0
     for i in np.arange(0, netOut.size):
