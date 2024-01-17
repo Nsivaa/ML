@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # TODO: cambiare bias in bias[0](in modo da avere un vettore e non una matrice con una riga) e modificare tutto di conseguenza
 
 
-#TODO: CAMBIARE ACTIVATION FUNCTION OUTPUT LAYER CLASSIFICAZIONE
+# TODO: CAMBIARE ACTIVATION FUNCTION OUTPUT LAYER CLASSIFICAZIONE
 
 def relu(x):
     return np.where(x > 0, x, 0.01 * x)
@@ -223,32 +223,34 @@ class NeuralNetwork:
         return
 
 # calcola il MSE sul dataset con i pesi e i bias correnti
-    def calcError(self, data: pd.DataFrame, labels: pd.DataFrame, act_fun: str = None, cost_fun: str = None):
+    def calcError(self, data: pd.DataFrame, labels: pd.DataFrame,
+                  hid_act_fun: str = None, out_act_fun: str = None, cost_fun: str = None):
         totErr = 0
         for row, label in zip(data.itertuples(index=False, name=None), labels.itertuples(index=False, name=None)):
-            totErr += self.forwardPropagation(row,
-                                              label, act_fun=act_fun, cost_fun=cost_fun)
+            totErr += self.forwardPropagation(row, label, hid_act_fun,
+                                              out_act_fun, cost_fun)
         totErr /= data.shape[0]
 
         return totErr
 # restituisce il risultato della loss function calcolato per i pesi correnti e l'input (row,label)
 
-
-    def forwardPropagation(self, row: tuple, label: tuple, act_fun: str, cost_fun: str):
+    def forwardPropagation(self, row: tuple, label: tuple, hid_act_fun: str, out_act_fun: str, cost_fun: str):
         self.input_layer.output = np.asarray(row)
         # FIRST HIDDEN LAYER TAKES WEIGHTS FROM INPUT LAYER
-        self.hidden_layers[0].feed_forward(self.input_layer.output, act_fun)
+        self.hidden_layers[0].feed_forward(
+            self.input_layer.output, hid_act_fun)
         for pos, layer in enumerate(self.hidden_layers[1:]):
-            layer.feed_forward(self.hidden_layers[pos].output, act_fun)
+            layer.feed_forward(self.hidden_layers[pos].output, hid_act_fun)
 
         self.output_layer.feed_forward(
-            self.hidden_layers[-1].output, act_fun="linear") #ADD SIGMOID FOR CLASSIFICATION
+            self.hidden_layers[-1].output, act_fun=out_act_fun)
 
         if cost_fun == "mse":
             return mse(self.output_layer.output, np.array(label))
         elif cost_fun == "el":
-            #       
-            return cross_entropy(softmax(self.output_layer.output), np.array(label))
+            # TAKE THE "WINNER" AMONG THE CLASSES PREDICTIONS
+            prediction = self.output_layer.output
+            return cross_entropy(prediction, np.array(label))
         else:
             return None
 
@@ -267,6 +269,7 @@ class NeuralNetwork:
             self.output_layer.bias_gradients[i] = delta
             # gradiente_w_j,i = bias_i * o_j
             self.output_layer.weight_gradients[:,i] = delta*self.hidden_layers[-1].output
+
         self.output_layer.acc_bias_gradients += self.output_layer.bias_gradients
         self.output_layer.acc_weight_gradients += self.output_layer.weight_gradients
 
@@ -331,10 +334,11 @@ class NeuralNetwork:
             layer.biases[0] += eta*(layer.acc_bias_gradients/n)
 
     def train(self, data: pd.DataFrame, labels: pd.DataFrame,
-              eta = None, epochs = 1, clip_value = None, act_fun: str = "None", cost_fun: str = None):
+              eta=None, epochs=1, clip_value=None, hid_act_fun: str = "None", out_act_fun: str = None, cost_fun: str = None):
 
         errors = []
-        tot_err = self.calcError(data, labels, act_fun = act_fun, cost_fun = cost_fun)        
+        tot_err = self.calcError(
+            data, labels, hid_act_fun, out_act_fun, cost_fun)
         print(f"total Error pre-training = {tot_err}")
         errors.append(tot_err)
         for epoch in np.arange(1, epochs+1):
@@ -345,18 +349,18 @@ class NeuralNetwork:
             for row, label in zip(data.itertuples(index=False, name=None), labels.itertuples(index=False, name=None)):
                 # Forward propagation
                 self.forwardPropagation(
-                    row, label, act_fun=act_fun, cost_fun=cost_fun)
+                    row, label, hid_act_fun, out_act_fun, cost_fun)
                 # backPropagation
                 self.outLayerBackpropagation(label)
                 # hidden layers
-                self.hiddenLayerBackpropagation(act_fun)
+                self.hiddenLayerBackpropagation(hid_act_fun)
 
             # aggiornamento dei pesi
             self.update_weights(data.shape[0], eta, clip_value)
 
             # new Total error with MSE
             # debug per clipping
-            tot_err = self.mseTotError(data, labels)
+            tot_err = self.calcError(data, labels, hid_act_fun, out_act_fun, cost_fun)
             errors.append(tot_err)
             print(f"Epoch = {epoch}, total Error post-training = {tot_err}")
             if tot_err > 10000:
