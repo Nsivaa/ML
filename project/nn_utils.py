@@ -76,8 +76,15 @@ def derivative(act_fun: str, arr: np.ndarray):
         return None
 
 
-def cross_entropy(p: np.ndarray, q: np.ndarray):
-    return -np.sum([p[i] * np.log(q[i]) for i in range(len(p))])
+def bin_cross_entropy(netOut: np.ndarray, sampleOut: int):
+    '''
+     netOut[0] is the predicted probability that the item is of class 0
+     netOut[1] is the output probability that the item is of class 1
+
+     When the observation belongs to class 1 (sampleOut = 1) the first part of the formula becomes active
+     and the second part vanishes and vice versa in the case observation's actual class is 0.
+    '''
+    return -(sampleOut * np.log(netOut[1]) + (1 - sampleOut) * np.log(1 - netOut))
 
 
 def mse(netOut: np.ndarray, sampleOut: np.ndarray):
@@ -87,11 +94,15 @@ def mse(netOut: np.ndarray, sampleOut: np.ndarray):
     return 0.5*s
 
 
-def plot_loss(losses: np.ndarray):
+def plot_loss(losses: np.ndarray, cost_fun: str):
     iterations = np.arange(len(losses))
     plt.title("Line graph")
-    plt.xlabel("Iterations")
-    plt.ylabel("Loss")
+    plt.xlabel("Epochs")
+    if cost_fun == "mse":
+        plt.ylabel("MSE Loss")
+    elif cost_fun == "b_ce":
+        plt.ylabel("Cross Entropy Loss")
+
     plt.plot(iterations, losses, color="green")
     plt.show()
 
@@ -247,10 +258,10 @@ class NeuralNetwork:
 
         if cost_fun == "mse":
             return mse(self.output_layer.output, np.array(label))
-        elif cost_fun == "el":
+        elif cost_fun == "b_ce":
             # TAKE THE "WINNER" AMONG THE CLASSES PREDICTIONS
             prediction = self.output_layer.output
-            return cross_entropy(prediction, np.array(label))
+            return bin_cross_entropy(prediction, np.array(label))
         else:
             return None
 
