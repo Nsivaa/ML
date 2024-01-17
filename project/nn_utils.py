@@ -76,15 +76,14 @@ def derivative(act_fun: str, arr: np.ndarray):
         return None
 
 
-def bin_cross_entropy(netOut: np.ndarray, sampleOut: int):
+def bin_cross_entropy(netOut: float, sampleOut: int):
     '''
-     netOut[0] is the predicted probability that the item is of class 0
-     netOut[1] is the output probability that the item is of class 1
+     netOut is the predicted probability that the item is of positive class (class 1) 
 
      When the observation belongs to class 1 (sampleOut = 1) the first part of the formula becomes active
      and the second part vanishes and vice versa in the case observation's actual class is 0.
     '''
-    return -(sampleOut * np.log(netOut[1]) + (1 - sampleOut) * np.log(1 - netOut))
+    return -(sampleOut * np.log(netOut) + (1 - sampleOut) * np.log(1 - netOut))
 
 
 def mse(netOut: np.ndarray, sampleOut: np.ndarray):
@@ -96,7 +95,7 @@ def mse(netOut: np.ndarray, sampleOut: np.ndarray):
 
 def plot_loss(losses: np.ndarray, cost_fun: str):
     iterations = np.arange(len(losses))
-    plt.title("Line graph")
+    plt.title("Learning Curve")
     plt.xlabel("Epochs")
     if cost_fun == "mse":
         plt.ylabel("MSE Loss")
