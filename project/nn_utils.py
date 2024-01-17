@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 # TODO: cambiare bias in bias[0](in modo da avere un vettore e non una matrice con una riga) e modificare tutto di conseguenza
 
 
+#TODO: CAMBIARE ACTIVATION FUNCTION OUTPUT LAYER CLASSIFICAZIONE
+
 def relu(x):
     return np.where(x > 0, x, 0.01 * x)
 
@@ -35,6 +37,11 @@ def sigmoid(x):
 
 def D_sigmoid(x):
     return x * (1 - x)
+
+
+def softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    return np.exp(x) / np.sum(np.exp(x), axis=0)
 
 
 def activation(arr: np.ndarray, act_fun: str):
@@ -68,6 +75,9 @@ def derivative(act_fun: str, arr: np.ndarray):
         print("Invalid activation function")
         return None
 
+
+def cross_entropy(p: np.ndarray, q: np.ndarray):
+    return -np.sum([p[i] * np.log(q[i]) for i in range(len(p))])
 
 
 def mse(netOut: np.ndarray, sampleOut: np.ndarray):
@@ -109,7 +119,7 @@ class Layer:
         if n_neurons == 0:
             self.weights = np.empty((0, 0))
 
-        elif self.is_input:
+        if self.is_input:
             self.weights = np.zeros(n_neurons)
         else:
 
@@ -213,16 +223,18 @@ class NeuralNetwork:
         return
 
 # calcola il MSE sul dataset con i pesi e i bias correnti
-    def mseTotError(self, data: pd.DataFrame, labels: pd.DataFrame, act_fun: str = "relu"):
+    def calcError(self, data: pd.DataFrame, labels: pd.DataFrame, act_fun: str = None, cost_fun: str = None):
         totErr = 0
         for row, label in zip(data.itertuples(index=False, name=None), labels.itertuples(index=False, name=None)):
-            totErr += self.forwardPropagation(row, label, act_fun=act_fun)
+            totErr += self.forwardPropagation(row,
+                                              label, act_fun=act_fun, cost_fun=cost_fun)
         totErr /= data.shape[0]
 
         return totErr
 # restituisce il risultato della loss function calcolato per i pesi correnti e l'input (row,label)
 
-    def forwardPropagation(self, row: tuple, label: tuple, act_fun: str):
+
+    def forwardPropagation(self, row: tuple, label: tuple, act_fun: str, cost_fun: str):
         self.input_layer.output = np.asarray(row)
         # FIRST HIDDEN LAYER TAKES WEIGHTS FROM INPUT LAYER
         self.hidden_layers[0].feed_forward(self.input_layer.output, act_fun)
@@ -230,9 +242,15 @@ class NeuralNetwork:
             layer.feed_forward(self.hidden_layers[pos].output, act_fun)
 
         self.output_layer.feed_forward(
-            self.hidden_layers[-1].output, act_fun="linear")
+            self.hidden_layers[-1].output, act_fun="linear") #ADD SIGMOID FOR CLASSIFICATION
 
-        return mse(self.output_layer.output, np.array(label))
+        if cost_fun == "mse":
+            return mse(self.output_layer.output, np.array(label))
+        elif cost_fun == "el":
+            #       
+            return cross_entropy(softmax(self.output_layer.output), np.array(label))
+        else:
+            return None
 
     def outLayerBackpropagation(self, label):
         # output layer
@@ -248,8 +266,7 @@ class NeuralNetwork:
             delta = (label[i]-self.output_layer.output[i])
             self.output_layer.bias_gradients[i] = delta
             # gradiente_w_j,i = bias_i * o_j
-            self.output_layer.weight_gradients[:,
-                                               i] = delta*self.hidden_layers[-1].output
+            self.output_layer.weight_gradients[:,i] = delta*self.hidden_layers[-1].output
         self.output_layer.acc_bias_gradients += self.output_layer.bias_gradients
         self.output_layer.acc_weight_gradients += self.output_layer.weight_gradients
 
@@ -313,11 +330,13 @@ class NeuralNetwork:
             layer.weights += eta*(layer.acc_weight_gradients/n)
             layer.biases[0] += eta*(layer.acc_bias_gradients/n)
 
-    def train(self, data: pd.DataFrame, labels: pd.DataFrame, eta=0.2, epochs=1, clip_value=None, act_fun: str = "relu"):
+    def train(self, data: pd.DataFrame, labels: pd.DataFrame,
+              eta = None, epochs = 1, clip_value = None, act_fun: str = "None", cost_fun: str = None):
+
         errors = []
-        totErr = self.mseTotError(data, labels, act_fun=act_fun)
-        print(f"total Error pre-training = {totErr}")
-        errors.append(totErr)
+        tot_err = self.calcError(data, labels, act_fun = act_fun, cost_fun = cost_fun)        
+        print(f"total Error pre-training = {tot_err}")
+        errors.append(tot_err)
         for epoch in np.arange(1, epochs+1):
 
             # tra un epoca e l'altra azzero gli accumulatori dei gradienti per ogni layer
@@ -325,7 +344,8 @@ class NeuralNetwork:
 
             for row, label in zip(data.itertuples(index=False, name=None), labels.itertuples(index=False, name=None)):
                 # Forward propagation
-                self.forwardPropagation(row, label, act_fun=act_fun)
+                self.forwardPropagation(
+                    row, label, act_fun=act_fun, cost_fun=cost_fun)
                 # backPropagation
                 self.outLayerBackpropagation(label)
                 # hidden layers
@@ -336,10 +356,10 @@ class NeuralNetwork:
 
             # new Total error with MSE
             # debug per clipping
-            totErr = self.mseTotError(data, labels)
-            errors.append(totErr)
-            print(f"Epoch = {epoch}, total Error post-training = {totErr}")
-            if totErr > 10000:
+            tot_err = self.mseTotError(data, labels)
+            errors.append(tot_err)
+            print(f"Epoch = {epoch}, total Error post-training = {tot_err}")
+            if tot_err > 10000:
                 print(self)
 
         print("end Training")
