@@ -258,9 +258,7 @@ class NeuralNetwork:
         if cost_fun == "mse":
             return mse(self.output_layer.output, np.array(label))
         elif cost_fun == "b_ce":
-            # TAKE THE "WINNER" AMONG THE CLASSES PREDICTIONS
-            prediction = self.output_layer.output
-            return bin_cross_entropy(prediction, np.array(label))
+            return bin_cross_entropy(self.output_layer.output, np.array(label))
         else:
             return None
 
@@ -278,7 +276,8 @@ class NeuralNetwork:
             delta = (label[i]-self.output_layer.output[i])
             self.output_layer.bias_gradients[i] = delta
             # gradiente_w_j,i = bias_i * o_j
-            self.output_layer.weight_gradients[:,i] = delta*self.hidden_layers[-1].output
+            self.output_layer.weight_gradients[:,
+                                               i] = delta*self.hidden_layers[-1].output
 
         self.output_layer.acc_bias_gradients += self.output_layer.bias_gradients
         self.output_layer.acc_weight_gradients += self.output_layer.weight_gradients
@@ -370,7 +369,8 @@ class NeuralNetwork:
 
             # new Total error with MSE
             # debug per clipping
-            tot_err = self.calcError(data, labels, hid_act_fun, out_act_fun, cost_fun)
+            tot_err = self.calcError(
+                data, labels, hid_act_fun, out_act_fun, cost_fun)
             errors.append(tot_err)
             print(f"Epoch = {epoch}, total Error post-training = {tot_err}")
             if tot_err > 10000:
