@@ -13,7 +13,7 @@ def relu(x):
 
 
 def D_relu(x):
-    return np.where(x > 0, 1, 0.01 * 1)
+    return np.where(x > 0, 1, 0)
 
 
 def leaky_relu(x):
@@ -21,7 +21,7 @@ def leaky_relu(x):
 
 
 def D_leaky_relu(x):
-    return np.where(x > 0, 1, 0.01 * 1)
+    return np.where(x > 0, 1, 0.01)
 
 
 def tanh(x):
@@ -128,7 +128,6 @@ class Layer:
         self.weight_gradients = None
         self.output = np.zeros(n_neurons)
 
-
         if self.is_input:
             self.weights = np.zeros(n_neurons)
         else:
@@ -139,7 +138,8 @@ class Layer:
             self.weights = np.random.randn(
                 *shape) * np.sqrt(2.0 / (shape[0] + shape[1]))
 
-            self.momentum_velocity_w = np.zeros((self.weights.shape[0],self.weights.shape[1]))
+            self.momentum_velocity_w = np.zeros(
+                (self.weights.shape[0], self.weights.shape[1]))
 
             self.biases = np.zeros((1, n_neurons))
             self.momentum_velocity_b = np.zeros(n_neurons)
@@ -283,7 +283,7 @@ class NeuralNetwork:
             self.output_layer.bias_gradients[i] = delta
             # gradiente_w_j,i = bias_i * o_j
             self.output_layer.weight_gradients[:,
-            i] = delta * self.hidden_layers[-1].output
+                                               i] = delta * self.hidden_layers[-1].output
 
         self.output_layer.acc_bias_gradients += self.output_layer.bias_gradients
         self.output_layer.acc_weight_gradients += self.output_layer.weight_gradients
@@ -310,11 +310,11 @@ class NeuralNetwork:
                 sum = 0
                 for k in np.arange(0, next_layer.n_neurons):
                     sum += next_layer.bias_gradients[k] * \
-                           next_layer.weights[i][k]
+                        next_layer.weights[i][k]
 
                 delta = sum * \
-                        derivative(act_fun, (np.dot(prec_layer.output,
-                                                    layer.weights[:, i]) + layer.biases[0][i]))
+                    derivative(act_fun, (np.dot(prec_layer.output,
+                                                layer.weights[:, i]) + layer.biases[0][i]))
                 layer.bias_gradients[i] = delta
                 # gradiente_w_j,i = bias_i * o_j
                 layer.weight_gradients[:, i] = delta * prec_layer.output
@@ -335,8 +335,7 @@ class NeuralNetwork:
             layer.acc_weight_gradients = np.zeros(
                 (layer.n_input, layer.n_neurons))
 
-
-    def update_weights(self, n: int, eta,momentum=None, clip_value=None):
+    def update_weights(self, n: int, eta, momentum=None, clip_value=None):
         for layer in np.arange(len(self.hidden_layers), -1, -1) - 1:
             if layer == -1:
                 layer = self.output_layer
@@ -350,14 +349,22 @@ class NeuralNetwork:
                 layer.weights += eta * (layer.acc_weight_gradients / n)
                 layer.biases[0] += eta * (layer.acc_bias_gradients / n)
             else:
-                layer.weights += eta * (layer.acc_weight_gradients / n) + layer.momentum_velocity_w * momentum
-                layer.biases[0] += eta * (layer.acc_bias_gradients / n) + layer.momentum_velocity_b * momentum
+                layer.weights += eta * \
+                    (layer.acc_weight_gradients / n) + \
+                    layer.momentum_velocity_w * momentum
+                layer.biases[0] += eta * (layer.acc_bias_gradients / n) + \
+                    layer.momentum_velocity_b * momentum
+                
                 # update velocities
-                layer.momentum_velocity_w = eta * (layer.acc_weight_gradients / n) + layer.momentum_velocity_w * momentum
-                layer.momentum_velocity_b = eta * (layer.acc_bias_gradients / n) + layer.momentum_velocity_b * momentum
-
+                layer.momentum_velocity_w = eta * \
+                    (layer.acc_weight_gradients / n) + \
+                    layer.momentum_velocity_w * momentum
+                layer.momentum_velocity_b = eta * \
+                    (layer.acc_bias_gradients / n) + \
+                    layer.momentum_velocity_b * momentum
 
     # n_mb -> minibatch size
+
     def train(self, df: pd.DataFrame,
               eta=None, epochs=1, clip_value=None, hid_act_fun: str = "None", out_act_fun: str = None,
               cost_fun: str = None, mb=16, momentum=None):
@@ -377,7 +384,8 @@ class NeuralNetwork:
                 if end_pos >= n:
                     end_pos = int(n - 1)
                 labels = df[["Class"]].iloc[start_pos:end_pos, :]
-                data = (df.drop(["Class", "ID"], axis=1)).iloc[start_pos:end_pos, :]
+                data = (df.drop(["Class", "ID"], axis=1)
+                        ).iloc[start_pos:end_pos, :]
 
                 for row, label in zip(data.itertuples(index=False, name=None),
                                       labels.itertuples(index=False, name=None)):
@@ -390,13 +398,14 @@ class NeuralNetwork:
                     self.hiddenLayerBackpropagation(hid_act_fun)
 
                 # aggiornamento dei pesi
-                self.update_weights(mb, eta, momentum,clip_value)
+                self.update_weights(mb, eta, momentum, clip_value)
 
                 # new Total error with MSE
                 # debug per clipping
                 tot_err = self.calcError(
                     data, labels, hid_act_fun, out_act_fun, cost_fun)
-                print(f"Epoch = {epoch}, step = {(int(step + 1))} total Error post-training = {tot_err}")
+                print(
+                    f"Epoch = {epoch}, step = {(int(step + 1))} total Error post-training = {tot_err}")
                 if tot_err > 10000:
                     print(self)
 
