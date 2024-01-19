@@ -1,110 +1,12 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
+from utils import *
 
 # TODO: cambiare bias in bias[0](in modo da avere un vettore e non una matrice con una riga) e modificare tutto di conseguenza
 
 
 # TODO: CAMBIARE ACTIVATION FUNCTION OUTPUT LAYER CLASSIFICAZIONE
-
-def relu(x):
-    return np.where(x > 0, x, 0.01 * x)
-
-
-def D_relu(x):
-    return np.where(x > 0, 1, 0)
-
-
-def leaky_relu(x):
-    return np.where(x > 0, x, 0.01 * x)
-
-
-def D_leaky_relu(x):
-    return np.where(x > 0, 1, 0.01)
-
-
-def tanh(x):
-    return np.tanh(x)
-
-
-def D_tanh(x):
-    return 1. - np.tanh(x) ** 2
-
-
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
-
-
-def D_sigmoid(x):
-    return sigmoid(x) * (1 - sigmoid(x))
-
-
-def softmax(x):
-    """Compute softmax values for each sets of scores in x."""
-    return np.exp(x) / np.sum(np.exp(x), axis=0)
-
-
-def activation(arr: np.ndarray, act_fun: str):
-    if act_fun == "relu":
-        return relu(arr)
-    elif act_fun == "leaky_relu":
-        return leaky_relu(arr)
-    elif act_fun == "sigmoid":
-        return sigmoid(arr)
-    elif act_fun == "tanh":
-        return tanh(arr)
-    elif act_fun == "linear":
-        return arr
-    else:
-        print("Invalid activation function")
-        return None
-
-
-def derivative(act_fun: str, arr: np.ndarray):
-    if act_fun == "relu":
-        return D_relu(arr)
-    elif act_fun == "leaky_relu":
-        return D_leaky_relu(arr)
-    elif act_fun == "sigmoid":
-        return D_sigmoid(arr)
-    elif act_fun == "tanh":
-        return D_tanh(arr)
-    elif act_fun == "linear":
-        return arr
-    else:
-        print("Invalid activation function")
-        return None
-
-
-def bin_cross_entropy(netOut: float, sampleOut: int):
-    '''
-     netOut is the predicted probability that the item is of positive class (class 1) 
-
-     When the observation belongs to class 1 (sampleOut = 1) the first part of the formula becomes active
-     and the second part vanishes and vice versa in the case observation's actual class is 0.
-    '''
-    return -(sampleOut * np.log(netOut) + (1 - sampleOut) * np.log(1 - netOut))
-
-
-def mse(netOut: np.ndarray, sampleOut: np.ndarray):
-    s = 0
-    for i in np.arange(0, netOut.size):
-        s += np.square(netOut[i] - sampleOut[i])
-    return 0.5 * s
-
-
-def plot_loss(losses: np.ndarray, cost_fun: str):
-    iterations = np.arange(len(losses))
-    plt.title("Learning Curve")
-    plt.xlabel("Epochs")
-    if cost_fun == "mse":
-        plt.ylabel("MSE Loss")
-    elif cost_fun == "b_ce":
-        plt.ylabel("Cross Entropy Loss")
-
-    plt.plot(iterations, losses, color="green")
-    plt.show()
 
 
 # np.random.seed(0)
@@ -365,15 +267,16 @@ class NeuralNetwork:
 
     # n_mb -> minibatch size
 
-    def train(self, df: pd.DataFrame,
+    def train(self, tr_data: pd.DataFrame,
               eta=None, epochs=1, clip_value=None, hid_act_fun: str = "None", out_act_fun: str = None,
               cost_fun: str = None, mb=16, momentum=None):
-
-        n = df.shape[0]
+        
+        tr_data.drop(["ID"], axis = 1, inplace=True)
+        n = tr_data.shape[0]
         errors = []
         for epoch in np.arange(1, epochs + 1):
             # shuffle dataframe before each epoch
-            df = df.sample(frac=1)
+            tr_data = tr_data.sample(frac=1)
 
             for step in np.arange(0, n / mb):
                 # tra uno step e l'altro azzero gli accumulatori dei gradienti per ogni layer
@@ -383,10 +286,9 @@ class NeuralNetwork:
                 end_pos = int(start_pos + mb - 1)
                 if end_pos >= n:
                     end_pos = int(n - 1)
-                labels = df[["Class"]].iloc[start_pos:end_pos, :]
-                data = (df.drop(["Class", "ID"], axis=1)
-                        ).iloc[start_pos:end_pos, :]
-
+                labels = tr_data[["Class"]].iloc[start_pos:end_pos, :]
+                data = (tr_data.drop(["Class"], axis=1)
+                        ).iloc[start_pos:end_pos, :]                
                 for row, label in zip(data.itertuples(index=False, name=None),
                                       labels.itertuples(index=False, name=None)):
                     # Forward propagation
