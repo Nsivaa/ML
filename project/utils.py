@@ -101,37 +101,8 @@ def plot_loss(losses: np.ndarray, cost_fun: str):
     plt.plot(iterations, losses, color="green")
     plt.show()
 
-def process_monk_data(tr_data: pd.DataFrame, test_data:pd.DataFrame = None):
-    tr_data = tr_data.sample(frac=1)
-    tr_data.reset_index(drop=True, inplace=True)
-    tr_data_Y = tr_data[["Class"]]
-    tr_data_X = one_hot_encode(tr_data)
-
-    if test_data is not None:        
-        test_data = test_data.sample(frac=1)
-        test_data.reset_index(drop = True, inplace = True)
-        test_data_Y = test_data[["Class"]]
-        test_data_X = one_hot_encode(test_data)
-        
-        common_cols = list(set(tr_data.columns).intersection(test_data.columns))
-        set_test_unknowns(test_data_X, common_cols)
-
-        return tr_data_X, tr_data_Y, test_data_X, test_data_Y
-    
-    return tr_data_X, tr_data_Y
-
-
-def one_hot_encode(data: pd.DataFrame):
-    tr_id_dummies = pd.get_dummies(data["ID"], dtype=int, drop_first = True)
-    tr_data_X = pd.concat([data.drop(["Class", "ID"], axis = 1), tr_id_dummies], axis = 1)
-    tr_data_X.insert(tr_data_X.shape[0], "unknown", 0)
-    return tr_data_X
-    
-
-def set_test_unknowns(test_data_X: pd.DataFrame, common_cols):
-    for col in test_data_X.columns: 
-        if col not in common_cols: #IF IT'S AN UNSEEN CLASS WE SET "UNKNOWN" TO 1 AND REMOVE THE COLUMN
-            row = test_data_X.loc[test_data_X[col] == 1].index[0] 
-            test_data_X.at[row,"unknown"] = 1
-            test_data_X.drop(col, axis = 1, inplace = True)
-    print(test_data_X)
+def process_monk_data(data: pd.DataFrame):
+    data = data.sample(frac=1)
+    data.reset_index(drop=True, inplace=True)
+    data = pd.get_dummies(data, columns = ["a1", "a2", "a3", "a4", "a5", "a6"], dtype=int)
+    return data

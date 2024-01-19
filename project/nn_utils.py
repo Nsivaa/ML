@@ -267,15 +267,16 @@ class NeuralNetwork:
 
     # n_mb -> minibatch size
 
-    def train(self, df: pd.DataFrame,
+    def train(self, tr_data: pd.DataFrame,
               eta=None, epochs=1, clip_value=None, hid_act_fun: str = "None", out_act_fun: str = None,
               cost_fun: str = None, mb=16, momentum=None):
-
-        n = df.shape[0]
+        
+        tr_data.drop(["ID"], axis = 1, inplace=True)
+        n = tr_data.shape[0]
         errors = []
         for epoch in np.arange(1, epochs + 1):
             # shuffle dataframe before each epoch
-            df = df.sample(frac=1)
+            tr_data = tr_data.sample(frac=1)
 
             for step in np.arange(0, n / mb):
                 # tra uno step e l'altro azzero gli accumulatori dei gradienti per ogni layer
@@ -285,10 +286,9 @@ class NeuralNetwork:
                 end_pos = int(start_pos + mb - 1)
                 if end_pos >= n:
                     end_pos = int(n - 1)
-                labels = df[["Class"]].iloc[start_pos:end_pos, :]
-                data = (df.drop(["Class", "ID"], axis=1)
-                        ).iloc[start_pos:end_pos, :]
-
+                labels = tr_data[["Class"]].iloc[start_pos:end_pos, :]
+                data = (tr_data.drop(["Class"], axis=1)
+                        ).iloc[start_pos:end_pos, :]                
                 for row, label in zip(data.itertuples(index=False, name=None),
                                       labels.itertuples(index=False, name=None)):
                     # Forward propagation
