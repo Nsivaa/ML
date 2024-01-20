@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-from nn_utils import *
+from NeuralNetwork import *
+from Layer import *
 from matplotlib import pyplot as plt
 
 def relu(x):
@@ -106,3 +107,4 @@ def process_monk_data(data: pd.DataFrame):
     data.reset_index(drop=True, inplace=True)
     data = pd.get_dummies(data, columns = ["a1", "a2", "a3", "a4", "a5", "a6"], dtype=int)
     return data
+
