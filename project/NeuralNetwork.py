@@ -197,7 +197,8 @@ class NeuralNetwork:
         clip_value = params["clip_value"]
 
         
-        tr_data.drop(["ID"], axis = 1, inplace=True)
+        if "ID" in tr_data:
+            tr_data.drop(["ID"], axis = 1, inplace=True)
         n = tr_data.shape[0]
         errors = []
         for epoch in np.arange(1, epochs + 1):
@@ -243,30 +244,35 @@ class NeuralNetwork:
         print("end Training")
         return errors
 
-    def k_fold(self, k, data, param, values, net_config):
+    def k_fold(self, k, data, parameters, theta, values):
+        np.random.seed(0)
         val_errors={}
         if "ID" in data.columns:
             data.drop(["ID"], axis = 1, inplace=True)
         data = data.sample(frac=1)
         folds = np.array_split(data, k)
         for value in values:
-            tr_err_accumulator = 0
+            parameters[theta] = value
             valid_err_accumulator = 0
 
             for fold in folds:
 
-                tr_set = pd.concat([f for f in folds if f != fold], axis=1)
-                tr_err_accumulator += self.k_fold_train(tr_set, param, value)
-                valid_labels= valid_data[["Class"]]
-                valid_data = valid_data.drop(["Class"], axis=1)
-                valid_err_accumulator += self.calcError(valid_data, valid_labels, "tanh", "sigmoid", "mse")
+                tr_set = pd.concat([f for f in folds if pd.Series.equals(f, fold)], axis=1)
+                self.train(tr_set, parameters)
+                valid_labels = fold[["Class"]]
+                valid_data = fold.drop(["Class"], axis=1)
+                valid_err_accumulator += self.calcError(valid_data, valid_labels, 
+                                                        parameters["hid_act_fun"],parameters["out_act_fun"],
+                                                        parameters["cost_fun"])
 
 
             val_errors[value] = valid_err_accumulator / k
-
+        '''
         min_err = np.min(val_errors.values())
         return val_errors[min_err]
-    
+        '''
+        return val_errors
+
     def __len__(self):
         '''Return the number of layers of the network'''
 
