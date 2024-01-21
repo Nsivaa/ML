@@ -185,9 +185,17 @@ class NeuralNetwork:
 
     # n_mb -> minibatch size
 
-    def train(self, tr_data: pd.DataFrame,
-              eta=None, epochs=1, clip_value=None, hid_act_fun: str = "None", out_act_fun: str = None,
-              cost_fun: str = None, mb=16, momentum=None):
+
+    def train(self, tr_data: pd.DataFrame, params : dict):
+        mb = params["mb"]
+        epochs = params["epochs"]
+        hid_act_fun = params["hid_act_fun"]
+        out_act_fun = params["out_act_fun"]
+        cost_fun = params["cost_fun"]
+        eta = params["eta"]
+        momentum = params["momentum"]
+        clip_value = params["clip_value"]
+
         
         tr_data.drop(["ID"], axis = 1, inplace=True)
         n = tr_data.shape[0]
@@ -235,9 +243,33 @@ class NeuralNetwork:
         print("end Training")
         return errors
 
-    '''Return the number of layers of the network'''
+    def k_fold(self, k, data, param, values, net_config):
+        val_errors={}
+        if "ID" in data.columns:
+            data.drop(["ID"], axis = 1, inplace=True)
+        data = data.sample(frac=1)
+        folds = np.array_split(data, k)
+        for value in values:
+            tr_err_accumulator = 0
+            valid_err_accumulator = 0
 
+            for fold in folds:
+
+                tr_set = pd.concat([f for f in folds if f != fold], axis=1)
+                tr_err_accumulator += self.k_fold_train(tr_set, param, value)
+                valid_labels= valid_data[["Class"]]
+                valid_data = valid_data.drop(["Class"], axis=1)
+                valid_err_accumulator += self.calcError(valid_data, valid_labels, "tanh", "sigmoid", "mse")
+
+
+            val_errors[value] = valid_err_accumulator / k
+
+        min_err = np.min(val_errors.values())
+        return val_errors[min_err]
+    
     def __len__(self):
+        '''Return the number of layers of the network'''
+
         res = 0
         if self.input_layer is not None:
             res += 1
