@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from itertools import product
 from utils import *
 from Layer import *
 
@@ -187,16 +185,24 @@ class NeuralNetwork:
     # n_mb -> minibatch size
 
 
-    def train(self, tr_data: pd.DataFrame, params : dict):
-        mb = params["mb"]
-        epochs = params["epochs"]
-        hid_act_fun = params["hid_act_fun"]
-        out_act_fun = params["out_act_fun"]
-        cost_fun = params["cost_fun"]
-        eta = params["eta"]
-        momentum = params["momentum"]
-        clip_value = params["clip_value"]
-
+    def train(self, tr_data: pd.DataFrame, params):
+        if type(params) is dict:
+            mb = params["mb"]
+            epochs = params["epochs"]
+            hid_act_fun = params["hid_act_fun"]
+            out_act_fun = params["out_act_fun"]
+            cost_fun = params["cost_fun"]
+            eta = params["eta"]
+            momentum = params["momentum"]
+            clip_value = params["clip_value"]
+        elif type(params) is list:
+            eta = params[1]
+            mb = params[2]
+            momentum = params[3]
+            epochs = params[6]
+            hid_act_fun = params[7]
+            out_act_fun = params[8]
+            clip_value = params[9]
         
         if "ID" in tr_data:
             tr_data.drop(["ID"], axis = 1, inplace=True)
@@ -245,42 +251,32 @@ class NeuralNetwork:
         print("end Training")
         return errors
 
-    def grid_search(self, k, data, grid):
-        np.random.seed(0)
 
-        prod = product(grid)
-       # for par in grid.keys():
-            #self.k_fold(k, data, , par, par.get())
-
-    def k_fold(self, k, data, parameters, theta, values): 
+    def k_fold(self, k, data, parameters): 
         '''
         theta is the parameter we are performing the search on 
         parameters is the list of all other parameters
         values is the list of values to try for theta
         '''
-        val_errors={}
         if "ID" in data.columns:
             data.drop(["ID"], axis = 1, inplace=True)
         data = data.sample(frac=1)
         folds = np.array_split(data, k)
-        for value in values:
-            parameters[theta] = value
-            valid_err_accumulator = 0
+        valid_err_accumulator = 0
 
-            for fold in folds:
+        for fold in folds:
 
-                tr_set = pd.concat([f for f in folds if pd.Series.equals(f, fold)], axis=1)
-                self.train(tr_set, parameters)
-                valid_labels = fold[["Class"]]
-                valid_data = fold.drop(["Class"], axis=1)
-                valid_err_accumulator += self.calcError(valid_data, valid_labels, 
-                                                        parameters["hid_act_fun"],parameters["out_act_fun"],
-                                                        parameters["cost_fun"])
+            tr_set = pd.concat([f for f in folds if pd.Series.equals(f, fold)], axis=1)
+            self.train(tr_set, parameters)
+            valid_labels = fold[["Class"]]
+            valid_data = fold.drop(["Class"], axis=1)
+            valid_err_accumulator += self.calcError(valid_data, valid_labels, 
+                                                    parameters["hid_act_fun"],parameters["out_act_fun"],
+                                                    parameters["cost_fun"])
 
-            val_errors[value] = valid_err_accumulator / k
-
-        min_err = np.min(val_errors.values())
-        return val_errors[min_err]
+        valid_err = valid_err_accumulator / k
+        return valid_err
+        
 
 
     def __len__(self):
