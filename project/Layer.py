@@ -1,5 +1,5 @@
 import numpy as np
-import utils
+from math_utils import activation
 
 class Layer:
     '''
@@ -52,7 +52,7 @@ class Layer:
     # ndarray of shape (1,n) is different from ndarray of shape (n)
     def feed_forward(self, inputs: np.ndarray, act_fun: str):
         output = np.dot(inputs, self.weights) + self.biases[0]
-        self.output = utils.activation(output, act_fun)
+        self.output = activation(output, act_fun)
 
     def clip_gradients(self, clip_value):
         self.acc_weight_gradients = np.clip(

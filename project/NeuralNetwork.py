@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from utils import *
+from math_utils import *
 from Layer import *
 
 # TODO: cambiare bias in bias[0](in modo da avere un vettore e non una matrice con una riga) e modificare tutto di conseguenza
