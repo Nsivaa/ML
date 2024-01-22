@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from itertools import product
 from utils import *
 from Layer import *
 
@@ -244,8 +245,19 @@ class NeuralNetwork:
         print("end Training")
         return errors
 
-    def k_fold(self, k, data, parameters, theta, values):
+    def grid_search(self, k, data, grid):
         np.random.seed(0)
+
+        prod = product(grid)
+       # for par in grid.keys():
+            #self.k_fold(k, data, , par, par.get())
+
+    def k_fold(self, k, data, parameters, theta, values): 
+        '''
+        theta is the parameter we are performing the search on 
+        parameters is the list of all other parameters
+        values is the list of values to try for theta
+        '''
         val_errors={}
         if "ID" in data.columns:
             data.drop(["ID"], axis = 1, inplace=True)
@@ -265,13 +277,11 @@ class NeuralNetwork:
                                                         parameters["hid_act_fun"],parameters["out_act_fun"],
                                                         parameters["cost_fun"])
 
-
             val_errors[value] = valid_err_accumulator / k
-        '''
+
         min_err = np.min(val_errors.values())
         return val_errors[min_err]
-        '''
-        return val_errors
+
 
     def __len__(self):
         '''Return the number of layers of the network'''
