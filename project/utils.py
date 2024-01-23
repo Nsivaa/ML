@@ -22,13 +22,13 @@ def parallel_grid_search(k, data, search_space, n_inputs, n_outputs):
     n_cores = cpu_count()
     split_search_space = np.array_split(search_space, n_cores)
     processes = []
-    lock = Lock()
     manager = Manager()
-    processes_res = manager.list()
+    lock = Lock()
+    res = manager.list(["", 10**5])
     for i in np.arange(n_cores):
         processes.append(Process(target=grid_search,
                               args=(k, data, split_search_space[i], n_inputs,
-                                    n_outputs, processes_res, lock)))
+                                    n_outputs, res, lock)))
         processes[i].start()
 
     for process in processes:
@@ -37,12 +37,12 @@ def parallel_grid_search(k, data, search_space, n_inputs, n_outputs):
     print("GRID SEARCH FINISHED")
 
     f = open("./results.txt", "w")
-    f.write(str(processes_res))
+    f.write(str(res))
     f.close()
-    return processes_res
+    return res
 
 
-def grid_search(k, data, search_space, n_inputs, n_outputs, output_dict=None, lock=None):
+def grid_search(k, data, search_space, n_inputs, n_outputs, shared_res=None, lock=None):
     np.random.seed(0)
     min_err = 10 ** 5
     val_errors = {}
@@ -64,10 +64,11 @@ def grid_search(k, data, search_space, n_inputs, n_outputs, output_dict=None, lo
             best_conf = parameters
             min_err = err
 
-    if output_dict is not None:
-        results = {frozenset(best_conf.items()): min_err}
+    if shared_res is not None:
         lock.acquire()
-        output_dict.append(results)
+        if min_err < shared_res[1]:
+            shared_res[0] = parameters
+            shared_res[1] = min_err
         lock.release()
         return 
 
