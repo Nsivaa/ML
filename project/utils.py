@@ -1,10 +1,9 @@
 import numpy as np
 import pandas as pd
-import multiprocessing
+from multiprocessing import Process, Manager, Lock, cpu_count
 from NeuralNetwork import *
 from matplotlib import pyplot as plt
 import itertools
-from threading import Thread, Lock
 
 
 def get_search_space(grid):
@@ -20,20 +19,21 @@ def get_search_space(grid):
 
 
 def parallel_grid_search(k, data, search_space, n_inputs, n_outputs):
-    n_cores = multiprocessing.cpu_count()
+    n_cores = cpu_count()
     split_search_space = np.array_split(search_space, n_cores)
     threads = []
     lock = Lock()
-    threads_res = []
+    manager = Manager()
+    threads_res = manager.list()
     for i in np.arange(n_cores):
-        threads.append(Thread(target=grid_search,
+        threads.append(Process(target=grid_search,
                               args=(k, data, split_search_space[i], n_inputs,
-                                    n_outputs, threads_res, lock, i)).start())
+                                    n_outputs, threads_res, lock, i)))
+        threads[i].start()
 
     for thread in threads:
         thread.join()
-        print("Joined")
-        
+
     print("GRID SEARCH FINISHED")
 
     f = open("./results.txt", "w")
@@ -56,9 +56,6 @@ def grid_search(k, data, search_space, n_inputs, n_outputs, output_dict=None, lo
             net.add_hidden_layer(n_neurons, n_neurons)
 
         net.add_output_layer(n_neurons, n_outputs)
-        if output_dict is not None:
-            print(f"THREAD N. {index}")
-        print(f"PARAMETER CONFIG N.{i}")
         err = net.k_fold(k, data, parameters)
         # frozenset because dict is not hashable
         val_errors[frozenset(parameters.items())] = err
@@ -74,13 +71,10 @@ def grid_search(k, data, search_space, n_inputs, n_outputs, output_dict=None, lo
         results.append(val_errors)
         dict_results = {index: results}
         lock.acquire()
-        print(f"lock acquired by {index}")
         output_dict.append(dict_results)
         lock.release()
-        print(f"lock released by {index}")
 
-        print(f"Thread n.{index} finished")
-        return
+        return 
 
     else:
         print("GRID SEARCH FINISHED")
