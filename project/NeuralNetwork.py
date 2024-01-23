@@ -60,7 +60,8 @@ class NeuralNetwork:
         for row, label in zip(data.itertuples(index=False, name=None), labels.itertuples(index=False, name=None)):
             totErr += self.forwardPropagation(row, label, hid_act_fun,
                                               out_act_fun, cost_fun)
-        totErr /= data.shape[0]
+        if (data.shape[0]) != 0:
+            totErr /= data.shape[0]
 
         return totErr
 
@@ -173,7 +174,7 @@ class NeuralNetwork:
                     layer.momentum_velocity_w * momentum
                 layer.biases[0] += eta * (layer.acc_bias_gradients / n) + \
                     layer.momentum_velocity_b * momentum
-                
+
                 # update velocities
                 layer.momentum_velocity_w = eta * \
                     (layer.acc_weight_gradients / n) + \
@@ -183,7 +184,6 @@ class NeuralNetwork:
                     layer.momentum_velocity_b * momentum
 
     # n_mb -> minibatch size
-
 
     def train(self, tr_data: pd.DataFrame, params):
         if type(params) is dict:
@@ -195,17 +195,18 @@ class NeuralNetwork:
             eta = params["eta"]
             momentum = params["momentum"]
             clip_value = params["clip_value"]
-        elif type(params) is list:
-            eta = params[1]
-            mb = params[2]
-            momentum = params[3]
-            epochs = params[6]
+        elif type(params) is tuple:
+            eta = params[0]
+            mb = params[1]
+            momentum = params[2]
+            epochs = params[5]
+            clip_value = params[6]
             hid_act_fun = params[7]
             out_act_fun = params[8]
-            clip_value = params[9]
-        
+            cost_fun = params[9]
+
         if "ID" in tr_data:
-            tr_data.drop(["ID"], axis = 1, inplace=True)
+            tr_data.drop(["ID"], axis=1, inplace=True)
         n = tr_data.shape[0]
         errors = []
         for epoch in np.arange(1, epochs + 1):
@@ -222,7 +223,7 @@ class NeuralNetwork:
                     end_pos = int(n - 1)
                 labels = tr_data[["Class"]].iloc[start_pos:end_pos, :]
                 data = (tr_data.drop(["Class"], axis=1)
-                        ).iloc[start_pos:end_pos, :]                
+                        ).iloc[start_pos:end_pos, :]
                 for row, label in zip(data.itertuples(index=False, name=None),
                                       labels.itertuples(index=False, name=None)):
                     # Forward propagation
@@ -241,7 +242,7 @@ class NeuralNetwork:
                 tot_err = self.calcError(
                     data, labels, hid_act_fun, out_act_fun, cost_fun)
                 print(
-                    f"Epoch = {epoch}, step = {(int(step + 1))} total Error post-training = {tot_err}")
+                    f"Epoch = {epoch}, mb = {(int(step + 1))} total Error post-training = {tot_err}")
                 if tot_err > 10000:
                     print(self)
 
@@ -251,33 +252,31 @@ class NeuralNetwork:
         print("end Training")
         return errors
 
-
-    def k_fold(self, k, data, parameters): 
+    def k_fold(self, k, data, parameters):
         '''
         theta is the parameter we are performing the search on 
         parameters is the list of all other parameters
         values is the list of values to try for theta
         '''
         if "ID" in data.columns:
-            data.drop(["ID"], axis = 1, inplace=True)
+            data.drop(["ID"], axis=1, inplace=True)
         data = data.sample(frac=1)
         folds = np.array_split(data, k)
         valid_err_accumulator = 0
-
+        print(f"PARAMETERS: {parameters}")
         for fold in folds:
 
-            tr_set = pd.concat([f for f in folds if pd.Series.equals(f, fold)], axis=1)
+            tr_set = pd.concat(
+                [f for f in folds if pd.Series.equals(f, fold)], axis=1)
             self.train(tr_set, parameters)
             valid_labels = fold[["Class"]]
             valid_data = fold.drop(["Class"], axis=1)
-            valid_err_accumulator += self.calcError(valid_data, valid_labels, 
-                                                    parameters["hid_act_fun"],parameters["out_act_fun"],
-                                                    parameters["cost_fun"])
+            valid_err_accumulator += self.calcError(valid_data, valid_labels,
+                                                    parameters[7], parameters[8],
+                                                    parameters[9])
 
         valid_err = valid_err_accumulator / k
         return valid_err
-        
-
 
     def __len__(self):
         '''Return the number of layers of the network'''

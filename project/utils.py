@@ -8,21 +8,13 @@ from matplotlib import pyplot as plt
 
 def grid_search(k, data, search_space, n_inputs, n_outputs):
     '''
-    "eta" : 1,
-    "mb" : 2,
-    "momentum" : 3,
-    "n_layers" : 4,
-    "n_neurons" : 5
-    "epochs" : 6,
-    "hid_act_fun" : 7,
-    "out_act_fun" : 8,
-    "clip_value" : 9
+ 
     '''
 
     np.random.seed(0)
     val_errors = {}
 
-    for parameters in search_space:
+    for i, parameters in enumerate(search_space):
         hidden_layers = []
         input_layer = Layer(n_inputs)
         hidden_layers.append(Layer(n_inputs, parameters[5]))
@@ -32,6 +24,7 @@ def grid_search(k, data, search_space, n_inputs, n_outputs):
         output_layer = Layer(parameters[5], n_outputs)
         net = NeuralNetwork(input_layer, hidden_layers, output_layer)
 
+        print(f"PARAMETER CONFIG N.{i}")
         val_errors[parameters] = net.k_fold(k, data, parameters)
 
     # min_err = np.min(val_errors.values())
