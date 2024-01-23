@@ -1,6 +1,8 @@
 import numpy as np
 from math_utils import activation
 
+np.random.seed(0)
+ 
 class Layer:
     '''
         The Layer class represents a layer of the neural network.

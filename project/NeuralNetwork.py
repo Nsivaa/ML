@@ -8,7 +8,7 @@ from Layer import *
 
 # TODO: CAMBIARE ACTIVATION FUNCTION OUTPUT LAYER CLASSIFICAZIONE
 
-# np.random.seed(0)
+np.random.seed(0)
 
 class NeuralNetwork:
     '''
@@ -60,7 +60,7 @@ class NeuralNetwork:
         for row, label in zip(data.itertuples(index=False, name=None), labels.itertuples(index=False, name=None)):
             totErr += self.forwardPropagation(row, label, hid_act_fun,
                                               out_act_fun, cost_fun)
-        if (data.shape[0]) != 0:
+        if (data.shape[0]) != 0: 
             totErr /= data.shape[0]
 
         return totErr
@@ -235,10 +235,10 @@ class NeuralNetwork:
             lasso_lambda= params["lasso_lambda"]
             if params["linear_decay"] is not None:
                 linear_decay=True
-                eta0=params["linear_decay"]["eta0"]
-                decay_max_steps=params["linear_decay"]["max_steps"]
+                eta0=params["eta0"]
+                decay_max_steps=params["max_steps"]
                 decay_step=0
-                epochs_update= params["linear_decay"]["epochs_update"]
+                epochs_update= params["epochs_update"]
             else:
                 linear_decay=False
 
@@ -254,17 +254,28 @@ class NeuralNetwork:
             ridge_lambda= params[10]
             lasso_lambda= params[11]
             linear_decay = params[12]
+            if params[12] is not None:
+                linear_decay = True
+                eta0 = params[13]
+                decay_max_steps = params[14]
+                decay_step = 0
+                epochs_update = params[15]
+            else:
+                linear_decay = False
             
-        
-
         if "ID" in tr_data:
             tr_data.drop(["ID"], axis=1, inplace=True)
         n = tr_data.shape[0]
         errors = []
+        epochs_update_counter=0
+
         for epoch in np.arange(1, epochs + 1):
             # shuffle dataframe before each epoch
             tr_data = tr_data.sample(frac=1)
-
+            if linear_decay and epochs_update_counter == epochs_update:
+                epochs_update_counter=0
+                decay_step+=1
+            
             for step in np.arange(0, n / mb):
                 # tra uno step e l'altro azzero gli accumulatori dei gradienti per ogni layer
                 self.reset_accumulators()
@@ -287,7 +298,10 @@ class NeuralNetwork:
                     self.hiddenLayerBackpropagation(hid_act_fun)
 
                 # aggiornamento dei pesi
-                self.update_weights(mb, eta, momentum, clip_value)
+                if linear_decay:
+                    self.update_weights(mb, eta, momentum,ridge_lambda,lasso_lambda, clip_value,eta0=eta0,max_steps=decay_max_steps,step=decay_step)
+                else:
+                    self.update_weights(mb, eta, momentum,ridge_lambda,lasso_lambda, clip_value)
 
                 # new Total error with MSE
                 # debug per clipping
@@ -324,8 +338,8 @@ class NeuralNetwork:
             valid_labels = fold[["Class"]]
             valid_data = fold.drop(["Class"], axis=1)
             valid_err_accumulator += self.calcError(valid_data, valid_labels,
-                                                    parameters[7], parameters[8],
-                                                    parameters[9])
+                                                    parameters["hid_act_fun"], parameters["out_act_fun"],
+                                                    parameters["cost_fun"])
 
         valid_err = valid_err_accumulator / k
         return valid_err

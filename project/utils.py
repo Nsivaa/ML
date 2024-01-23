@@ -7,29 +7,29 @@ from matplotlib import pyplot as plt
 
 
 def grid_search(k, data, search_space, n_inputs, n_outputs):
-    '''
- 
-    '''
 
     np.random.seed(0)
     val_errors = {}
-
+    min_err = 10 ** 5
     for i, parameters in enumerate(search_space):
-        hidden_layers = []
-        input_layer = Layer(n_inputs)
-        hidden_layers.append(Layer(n_inputs, parameters[5]))
-        for _ in np.arange(parameters[4] - 1):
-            hidden_layers.append(Layer(parameters[5], parameters[5]))
+        n_layers = parameters["n_layers"]
+        n_neurons = parameters["n_neurons"]
+        net = NeuralNetwork()
+        net.add_input_layer(n_inputs)
+        net.add_hidden_layer(n_inputs, n_neurons)
+        for _ in np.arange(n_layers):
+            net.add_hidden_layer(n_neurons, n_neurons)
 
-        output_layer = Layer(parameters[5], n_outputs)
-        net = NeuralNetwork(input_layer, hidden_layers, output_layer)
-
+        net.add_output_layer(n_neurons, n_outputs)
         print(f"PARAMETER CONFIG N.{i}")
-        val_errors[parameters] = net.k_fold(k, data, parameters)
+        err = net.k_fold(k, data, parameters)
+        val_errors[frozenset(parameters.items())] = err #frozenset because dict is not hashable
+        
+        if err < min_err:
+            best_conf = parameters
+            min_err = err
 
-    # min_err = np.min(val_errors.values())
-    # return val_errors[min_err]
-    return val_errors
+    return best_conf, min_err, val_errors
 
 
 def plot_loss(losses: np.ndarray, cost_fun: str):
