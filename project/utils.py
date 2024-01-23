@@ -21,32 +21,32 @@ def get_search_space(grid):
 def parallel_grid_search(k, data, search_space, n_inputs, n_outputs):
     n_cores = cpu_count()
     split_search_space = np.array_split(search_space, n_cores)
-    threads = []
+    processes = []
     lock = Lock()
     manager = Manager()
-    threads_res = manager.list()
+    processes_res = manager.list()
     for i in np.arange(n_cores):
-        threads.append(Process(target=grid_search,
+        processes.append(Process(target=grid_search,
                               args=(k, data, split_search_space[i], n_inputs,
-                                    n_outputs, threads_res, lock, i)))
-        threads[i].start()
+                                    n_outputs, processes_res, lock)))
+        processes[i].start()
 
-    for thread in threads:
-        thread.join()
+    for process in processes:
+        process.join()
 
     print("GRID SEARCH FINISHED")
 
     f = open("./results.txt", "w")
-    f.write(str(threads_res))
+    f.write(str(processes_res))
     f.close()
-    return threads_res
+    return processes_res
 
 
-def grid_search(k, data, search_space, n_inputs, n_outputs, output_dict=None, lock=None, index=None):
+def grid_search(k, data, search_space, n_inputs, n_outputs, output_dict=None, lock=None):
     np.random.seed(0)
     min_err = 10 ** 5
     val_errors = {}
-    for i, parameters in enumerate(search_space):
+    for parameters in search_space:
         n_layers = parameters["n_layers"]
         n_neurons = parameters["n_neurons"]
         net = NeuralNetwork()
@@ -58,22 +58,17 @@ def grid_search(k, data, search_space, n_inputs, n_outputs, output_dict=None, lo
         net.add_output_layer(n_neurons, n_outputs)
         err = net.k_fold(k, data, parameters)
         # frozenset because dict is not hashable
-        val_errors[frozenset(parameters.items())] = err
+        #val_errors[frozenset(parameters.items())] = err
 
         if err < min_err:
             best_conf = parameters
             min_err = err
 
     if output_dict is not None:
-        results = []
-        results.append(best_conf)
-        results.append(min_err)
-        results.append(val_errors)
-        dict_results = {index: results}
+        results = {frozenset(best_conf.items()): min_err}
         lock.acquire()
-        output_dict.append(dict_results)
+        output_dict.append(results)
         lock.release()
-
         return 
 
     else:
