@@ -155,7 +155,13 @@ class NeuralNetwork:
             layer.acc_weight_gradients = np.zeros(
                 (layer.n_input, layer.n_neurons))
 
-    def update_weights(self, n: int, eta, momentum=None, clip_value=None):
+    def update_weights(self, n: int, eta, momentum,ridge_lambda,lasso_lambda, clip_value=None,eta0=None, max_steps=None,step=0):
+        
+        if eta0 is not None:
+            alpha = step/max_steps
+            eta = eta0 * (1-alpha) + alpha * eta0 / 100
+        if lasso_lambda is None and ridge_lambda is None:
+            ridge_lambda=0
         for layer in np.arange(len(self.hidden_layers), -1, -1) - 1:
             if layer == -1:
                 layer = self.output_layer
@@ -165,26 +171,56 @@ class NeuralNetwork:
             # clippo il gradiente per evitare gradient explosion
             if clip_value:
                 layer.clip_gradients(clip_value)
-            if momentum is None:
-                layer.weights += eta * (layer.acc_weight_gradients / n)
-                layer.biases[0] += eta * (layer.acc_bias_gradients / n)
-            else:
-                layer.weights += eta * \
-                    (layer.acc_weight_gradients / n) + \
-                    layer.momentum_velocity_w * momentum
-                layer.biases[0] += eta * (layer.acc_bias_gradients / n) + \
-                    layer.momentum_velocity_b * momentum
+            if lasso_lambda is None:
+                if momentum is None:
+                    layer.weights += eta * (layer.acc_weight_gradients / n) - (2 * ridge_lambda * layer.weights)
+                    layer.biases[0] += eta * (layer.acc_bias_gradients / n)
+                else:
+                    layer.weights += eta * \
+                        (layer.acc_weight_gradients / n) + \
+                        layer.momentum_velocity_w * momentum - (2 * ridge_lambda * layer.weights)
+                    layer.biases[0] += eta * (layer.acc_bias_gradients / n) + \
+                        layer.momentum_velocity_b * momentum
 
-                # update velocities
-                layer.momentum_velocity_w = eta * \
-                    (layer.acc_weight_gradients / n) + \
-                    layer.momentum_velocity_w * momentum
-                layer.momentum_velocity_b = eta * \
-                    (layer.acc_bias_gradients / n) + \
-                    layer.momentum_velocity_b * momentum
+                    # update velocities
+                    layer.momentum_velocity_w = eta * \
+                        (layer.acc_weight_gradients / n) + \
+                        layer.momentum_velocity_w * momentum
+                    layer.momentum_velocity_b = eta * \
+                        (layer.acc_bias_gradients / n) + \
+                        layer.momentum_velocity_b * momentum
+            else :
+                # nella formula del gradiente con lasso regression si ha la derivata del valore assoluto dei pesi
+                # perciò la derivata, che si sommerà ad eta e al momentum nel calcolo del nuovo peso sarà:
+                # -lambda per peso >=0 mentre + lambda altrimenti
+                lasso_lambda_matrix= lasso_lambda * np.where(layer.weights >= 0,-1,1)
+                if momentum is None:
+                    layer.weights += eta * (layer.acc_weight_gradients / n) + lasso_lambda_matrix
+                    layer.biases[0] += eta * (layer.acc_bias_gradients / n)
+                else:
+                    layer.weights += eta * \
+                        (layer.acc_weight_gradients / n) + \
+                        layer.momentum_velocity_w * momentum + lasso_lambda_matrix
+                    layer.biases[0] += eta * (layer.acc_bias_gradients / n) + \
+                        layer.momentum_velocity_b * momentum
+
+                    # update velocities
+                    layer.momentum_velocity_w = eta * \
+                        (layer.acc_weight_gradients / n) + \
+                        layer.momentum_velocity_w * momentum
+                    layer.momentum_velocity_b = eta * \
+                        (layer.acc_bias_gradients / n) + \
+                        layer.momentum_velocity_b * momentum
 
     # n_mb -> minibatch size
-
+    # TODO: il parametro di regolarizzazione si è scelto di non considerarlo nell'aggiornamento della velocità del momentum così da mantenerlo indipendente da eta e alpha (momentum)
+    '''
+        Nella versione con ridge regression, viene  agggiunto il termine lambda * norma(2) al quadrato del vettore 
+        contenente tutti i pesi del network alla funzione di loss e, di conseguenza anche all'aggiornamento dei pesi,
+        L'errore che si stampa nei plot e che si usa per i confronti tra i modelli è quello classico, che non tiene conto della regolarizzazione
+        il termine di regolarizzazaione sarà solo aggiunto nel weight update. 
+        Lambda dovrebbe esser moltiplicato per mb/n ma si evita in quanto il parametro sarò automaticamente selezionato nelle grid search
+    '''
     def train(self, tr_data: pd.DataFrame, params):
         if type(params) is dict:
             mb = params["mb"]
@@ -195,6 +231,17 @@ class NeuralNetwork:
             eta = params["eta"]
             momentum = params["momentum"]
             clip_value = params["clip_value"]
+            ridge_lambda= params["ridge_lambda"]
+            lasso_lambda= params["lasso_lambda"]
+            if params["linear_decay"] is not None:
+                linear_decay=True
+                eta0=params["linear_decay"]["eta0"]
+                decay_max_steps=params["linear_decay"]["max_steps"]
+                decay_step=0
+                epochs_update= params["linear_decay"]["epochs_update"]
+            else:
+                linear_decay=False
+
         elif type(params) is tuple:
             eta = params[0]
             mb = params[1]
@@ -204,6 +251,11 @@ class NeuralNetwork:
             hid_act_fun = params[7]
             out_act_fun = params[8]
             cost_fun = params[9]
+            ridge_lambda= params[10]
+            lasso_lambda= params[11]
+            linear_decay = params[12]
+            
+        
 
         if "ID" in tr_data:
             tr_data.drop(["ID"], axis=1, inplace=True)
