@@ -10,6 +10,7 @@ from Layer import *
 
 np.random.seed(0)
 
+
 class NeuralNetwork:
     '''
         NeuralNetwork class contains:
@@ -60,7 +61,7 @@ class NeuralNetwork:
         for row, label in zip(data.itertuples(index=False, name=None), labels.itertuples(index=False, name=None)):
             totErr += self.forwardPropagation(row, label, hid_act_fun,
                                               out_act_fun, cost_fun)
-        if (data.shape[0]) != 0: 
+        if (data.shape[0]) != 0:
             totErr /= data.shape[0]
 
         return totErr
@@ -155,13 +156,13 @@ class NeuralNetwork:
             layer.acc_weight_gradients = np.zeros(
                 (layer.n_input, layer.n_neurons))
 
-    def update_weights(self, n: int, eta, momentum,ridge_lambda,lasso_lambda, clip_value=None,eta0=None, max_steps=None,step=0):
-        
+    def update_weights(self, n: int, eta, momentum, ridge_lambda, lasso_lambda, clip_value=None, eta0=None, max_steps=None, step=0):
+
         if eta0 is not None:
             alpha = step/max_steps
             eta = eta0 * (1-alpha) + alpha * eta0 / 100
         if lasso_lambda is None and ridge_lambda is None:
-            ridge_lambda=0
+            ridge_lambda = 0
         for layer in np.arange(len(self.hidden_layers), -1, -1) - 1:
             if layer == -1:
                 layer = self.output_layer
@@ -173,12 +174,15 @@ class NeuralNetwork:
                 layer.clip_gradients(clip_value)
             if lasso_lambda is None:
                 if momentum is None:
-                    layer.weights += eta * (layer.acc_weight_gradients / n) - (2 * ridge_lambda * layer.weights)
+                    layer.weights += eta * \
+                        (layer.acc_weight_gradients / n) - \
+                        (2 * ridge_lambda * layer.weights)
                     layer.biases[0] += eta * (layer.acc_bias_gradients / n)
                 else:
                     layer.weights += eta * \
                         (layer.acc_weight_gradients / n) + \
-                        layer.momentum_velocity_w * momentum - (2 * ridge_lambda * layer.weights)
+                        layer.momentum_velocity_w * momentum - \
+                        (2 * ridge_lambda * layer.weights)
                     layer.biases[0] += eta * (layer.acc_bias_gradients / n) + \
                         layer.momentum_velocity_b * momentum
 
@@ -189,13 +193,15 @@ class NeuralNetwork:
                     layer.momentum_velocity_b = eta * \
                         (layer.acc_bias_gradients / n) + \
                         layer.momentum_velocity_b * momentum
-            else :
+            else:
                 # nella formula del gradiente con lasso regression si ha la derivata del valore assoluto dei pesi
                 # perciò la derivata, che si sommerà ad eta e al momentum nel calcolo del nuovo peso sarà:
                 # -lambda per peso >=0 mentre + lambda altrimenti
-                lasso_lambda_matrix= lasso_lambda * np.where(layer.weights >= 0,-1,1)
+                lasso_lambda_matrix = lasso_lambda * np.where(
+                    layer.weights >= 0, -1, 1)
                 if momentum is None:
-                    layer.weights += eta * (layer.acc_weight_gradients / n) + lasso_lambda_matrix
+                    layer.weights += eta * \
+                        (layer.acc_weight_gradients / n) + lasso_lambda_matrix
                     layer.biases[0] += eta * (layer.acc_bias_gradients / n)
                 else:
                     layer.weights += eta * \
@@ -221,61 +227,40 @@ class NeuralNetwork:
         il termine di regolarizzazaione sarà solo aggiunto nel weight update. 
         Lambda dovrebbe esser moltiplicato per mb/n ma si evita in quanto il parametro sarò automaticamente selezionato nelle grid search
     '''
-    def train(self, tr_data: pd.DataFrame, params):
-        if type(params) is dict:
-            mb = params["mb"]
-            epochs = params["epochs"]
-            hid_act_fun = params["hid_act_fun"]
-            out_act_fun = params["out_act_fun"]
-            cost_fun = params["cost_fun"]
-            eta = params["eta"]
-            momentum = params["momentum"]
-            clip_value = params["clip_value"]
-            ridge_lambda= params["ridge_lambda"]
-            lasso_lambda= params["lasso_lambda"]
-            if params["linear_decay"] is not None:
-                linear_decay=True
-                eta0=params["eta0"]
-                decay_max_steps=params["max_steps"]
-                decay_step=0
-                epochs_update= params["epochs_update"]
-            else:
-                linear_decay=False
 
-        elif type(params) is tuple:
-            eta = params[0]
-            mb = params[1]
-            momentum = params[2]
-            epochs = params[5]
-            clip_value = params[6]
-            hid_act_fun = params[7]
-            out_act_fun = params[8]
-            cost_fun = params[9]
-            ridge_lambda= params[10]
-            lasso_lambda= params[11]
-            linear_decay = params[12]
-            if params[12] is not None:
-                linear_decay = True
-                eta0 = params[13]
-                decay_max_steps = params[14]
-                decay_step = 0
-                epochs_update = params[15]
-            else:
-                linear_decay = False
-            
+    def train(self, tr_data: pd.DataFrame, params):
+        mb = params["mb"]
+        epochs = params["epochs"]
+        hid_act_fun = params["hid_act_fun"]
+        out_act_fun = params["out_act_fun"]
+        cost_fun = params["cost_fun"]
+        eta = params["eta"]
+        momentum = params["momentum"]
+        clip_value = params["clip_value"]
+        ridge_lambda = params["ridge_lambda"]
+        lasso_lambda = params["lasso_lambda"]
+        if params["linear_decay"] is not None:
+            linear_decay = True
+            eta0 = params["eta0"]
+            decay_max_steps = params["max_steps"]
+            decay_step = 0
+            epochs_update = params["epochs_update"]
+        else:
+            linear_decay = False
+
         if "ID" in tr_data:
             tr_data.drop(["ID"], axis=1, inplace=True)
         n = tr_data.shape[0]
         errors = []
-        epochs_update_counter=0
+        epochs_update_counter = 0
 
         for epoch in np.arange(1, epochs + 1):
             # shuffle dataframe before each epoch
             tr_data = tr_data.sample(frac=1)
             if linear_decay and epochs_update_counter == epochs_update:
-                epochs_update_counter=0
-                decay_step+=1
-            
+                epochs_update_counter = 0
+                decay_step += 1
+
             for step in np.arange(0, n / mb):
                 # tra uno step e l'altro azzero gli accumulatori dei gradienti per ogni layer
                 self.reset_accumulators()
@@ -299,18 +284,18 @@ class NeuralNetwork:
 
                 # aggiornamento dei pesi
                 if linear_decay:
-                    self.update_weights(mb, eta, momentum,ridge_lambda,lasso_lambda, clip_value,eta0=eta0,max_steps=decay_max_steps,step=decay_step)
+                    self.update_weights(mb, eta, momentum, ridge_lambda, lasso_lambda,
+                                        clip_value, eta0=eta0, max_steps=decay_max_steps, step=decay_step)
                 else:
-                    self.update_weights(mb, eta, momentum,ridge_lambda,lasso_lambda, clip_value)
+                    self.update_weights(mb, eta, momentum,
+                                        ridge_lambda, lasso_lambda, clip_value)
 
                 # new Total error with MSE
                 # debug per clipping
                 tot_err = self.calcError(
                     data, labels, hid_act_fun, out_act_fun, cost_fun)
-                print(
-                    f"Epoch = {epoch}, mb = {(int(step + 1))} total Error post-training = {tot_err}")
-                if tot_err > 10000:
-                    print(self)
+                # print(
+                # f"Epoch = {epoch}, mb = {(int(step + 1))} total Error post-training = {tot_err}")
 
             errors.append(tot_err)
             # end epoch

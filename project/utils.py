@@ -28,7 +28,7 @@ def grid_search(k, data, search_space, n_inputs, n_outputs):
         if err < min_err:
             best_conf = parameters
             min_err = err
-
+    print("GRID SEARCH FINISHED")
     return best_conf, min_err, val_errors
 
 
