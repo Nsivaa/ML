@@ -8,7 +8,6 @@ from Layer import *
 
 # TODO: CAMBIARE ACTIVATION FUNCTION OUTPUT LAYER CLASSIFICAZIONE
 
-np.random.seed(0)
 
 
 class NeuralNetwork:
@@ -311,22 +310,22 @@ class NeuralNetwork:
         '''
         if "ID" in data.columns:
             data.drop(["ID"], axis=1, inplace=True)
+        np.random.seed(None)
         data = data.sample(frac=1)
         folds = np.array_split(data, k)
         valid_err_accumulator = 0
-        print(f"PARAMETERS: {parameters}")
         for fold in folds:
 
             tr_set = pd.concat(
-                [f for f in folds if pd.Series.equals(f, fold)], axis=1)
+                [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
             self.train(tr_set, parameters)
             valid_labels = fold[["Class"]]
             valid_data = fold.drop(["Class"], axis=1)
             valid_err_accumulator += self.calcError(valid_data, valid_labels,
                                                     parameters["hid_act_fun"], parameters["out_act_fun"],
                                                     parameters["cost_fun"])
-
         valid_err = valid_err_accumulator / k
+        print(f"Valid error:{valid_err} with par {parameters}")
         return valid_err
 
     def __len__(self):

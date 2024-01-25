@@ -1,7 +1,6 @@
 import numpy as np
 from math_utils import activation
 
-np.random.seed(0)
  
 class Layer:
     '''
@@ -24,6 +23,8 @@ class Layer:
         if self.is_input:
             self.weights = np.zeros(n_neurons)
         else:
+            np.random.seed(0)
+
             self.weights = 0, 1 * np.random.randn(n_inputs, n_neurons)
             self.weights = self.weights[1]
             # xavier normalization for weight inizialization

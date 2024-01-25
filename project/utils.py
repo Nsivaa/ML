@@ -19,7 +19,12 @@ def get_search_space(grid):
 
 
 def parallel_grid_search(k, data, search_space, n_inputs, n_outputs):
-    n_cores = cpu_count()
+    cpus = cpu_count()
+    if len(search_space) >= cpus:
+        n_cores = cpus
+    else:
+        n_cores = len(search_space)
+
     split_search_space = np.array_split(search_space, n_cores)
     processes = []
     manager = Manager()
@@ -43,9 +48,9 @@ def parallel_grid_search(k, data, search_space, n_inputs, n_outputs):
 
 
 def grid_search(k, data, search_space, n_inputs, n_outputs, shared_res=None, lock=None):
-    np.random.seed(0)
     min_err = 10 ** 5
     val_errors = {}
+    
     for parameters in search_space:
         n_layers = parameters["n_layers"]
         n_neurons = parameters["n_neurons"]
@@ -62,19 +67,22 @@ def grid_search(k, data, search_space, n_inputs, n_outputs, shared_res=None, loc
 
         if err < min_err:
             best_conf = parameters
-            min_err = err
+            min_err = err       
+
 
     if shared_res is not None:
         lock.acquire()
         if min_err < shared_res[1]:
-            shared_res[0] = parameters
+            shared_res[0] = best_conf
             shared_res[1] = min_err
+            print(f"shared_res : {shared_res}, min err: {min_err}")
         lock.release()
+
         return 
 
     else:
         print("GRID SEARCH FINISHED")
-        return best_conf, min_err, val_errors
+        return (best_conf, min_err)
 
 
 def plot_loss(losses: np.ndarray, cost_fun: str):
@@ -91,6 +99,7 @@ def plot_loss(losses: np.ndarray, cost_fun: str):
 
 
 def process_monk_data(data: pd.DataFrame):
+    np.random.seed(0)
     data = data.sample(frac=1)
     data.reset_index(drop=True, inplace=True)
     data = pd.get_dummies(
