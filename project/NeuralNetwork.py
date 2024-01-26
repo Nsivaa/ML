@@ -9,7 +9,6 @@ from Layer import *
 # TODO: CAMBIARE ACTIVATION FUNCTION OUTPUT LAYER CLASSIFICAZIONE
 
 
-
 class NeuralNetwork:
     '''
         NeuralNetwork class contains:
@@ -29,9 +28,9 @@ class NeuralNetwork:
 
         return
 
-    def add_input_layer(self, n_neurons: int = 0):
+    def add_input_layer(self, n_neurons: int = 0, randomize_weights = True):
         self.input_layer = Layer(
-            n_inputs=1, n_neurons=n_neurons, is_input=True)
+            n_inputs=1, n_neurons=n_neurons, is_input=True, randomize_weights=randomize_weights)
         return
 
     ''' 
@@ -39,8 +38,8 @@ class NeuralNetwork:
         The layer is created with the number of weights for each neuron relative to the previous layer
     '''
 
-    def add_hidden_layer(self, n_inputs: int = 0, n_neurons: int = 0, pos: int = -1):
-        layer = Layer(n_inputs, n_neurons, is_input=False)
+    def add_hidden_layer(self, n_inputs: int = 0, n_neurons: int = 0, pos: int = -1, randomize_weights = True):
+        layer = Layer(n_inputs, n_neurons, is_input=False, randomize_weights=randomize_weights)
         if pos == -1:
             self.hidden_layers.append(layer)
 
@@ -48,14 +47,15 @@ class NeuralNetwork:
             self.hidden_layers.insert(pos, layer)
         return
 
-    def add_output_layer(self, n_inputs: int = 0, n_neurons: int = 0):
-        self.output_layer = Layer(n_inputs, n_neurons, is_input=False)
+    def add_output_layer(self, n_inputs: int = 0, n_neurons: int = 0 , randomize_weights = True):
+        self.output_layer = Layer(n_inputs, n_neurons, is_input=False, randomize_weights= randomize_weights)
 
         return
 
-    # calcola il MSE sul dataset con i pesi e i bias correnti
     def calcError(self, data: pd.DataFrame, labels: pd.DataFrame,
                   hid_act_fun: str = None, out_act_fun: str = None, cost_fun: str = None):
+        # calcola l'errore sul dataset con i pesi e i bias correnti
+
         totErr = 0
         for row, label in zip(data.itertuples(index=False, name=None), labels.itertuples(index=False, name=None)):
             totErr += self.forwardPropagation(row, label, hid_act_fun,
@@ -65,9 +65,9 @@ class NeuralNetwork:
 
         return totErr
 
-    # restituisce il risultato della loss function calcolato per i pesi correnti e l'input (row,label)
-
     def forwardPropagation(self, row: tuple, label: tuple, hid_act_fun: str, out_act_fun: str, cost_fun: str):
+        # restituisce il risultato della loss function calcolato per i pesi correnti e l'input (row,label)
+
         self.input_layer.output = np.asarray(row)
         # FIRST HIDDEN LAYER TAKES WEIGHTS FROM INPUT LAYER
         self.hidden_layers[0].feed_forward(
@@ -82,6 +82,8 @@ class NeuralNetwork:
             return mse(self.output_layer.output, np.array(label))
         elif cost_fun == "b_ce":
             return bin_cross_entropy(self.output_layer.output, np.array(label))
+        elif cost_fun == "accuracy":
+            return accuracy(self.output_layer.output, np.array(label))
         else:
             return None
 
@@ -340,8 +342,30 @@ class NeuralNetwork:
 
         if self.output_layer is not None:
             res += 1
-
         return res
+
+
+    def hold_out(self, data, parameters, randomize_shuffle = True):
+        if "ID" in data.columns:
+            data.drop(["ID"], axis=1, inplace=True)
+        if randomize_shuffle:
+            np.random.seed(None)
+        else:
+            np.random.seed(0)
+
+        data = data.sample(frac=1)
+        folds = np.array_split(data, 5)
+
+        tr_set = pd.concat(folds[1:], axis=0)
+        test_set = folds[-1]
+        self.train(tr_set, parameters)
+        valid_labels = test_set[["Class"]]
+        valid_data = test_set.drop(["Class"], axis=1)
+        valid_err = self.calcError(valid_data, valid_labels,
+                                                parameters["hid_act_fun"], parameters["out_act_fun"],
+                                                parameters["cost_fun"])
+        print(f"Valid error:{valid_err} with par {parameters}")
+        return valid_err
 
     def number_of_nodes(self):
         res = 0

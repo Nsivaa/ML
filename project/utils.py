@@ -32,15 +32,14 @@ def parallel_grid_search(k, data, search_space, n_inputs, n_outputs):
     res = manager.list(["", 10**5])
     for i in np.arange(n_cores):
         processes.append(Process(target=grid_search,
-                              args=(k, data, split_search_space[i], n_inputs,
-                                    n_outputs, res, lock)))
+                                 args=(k, data, split_search_space[i], n_inputs,
+                                       n_outputs, res, lock)))
         processes[i].start()
 
     for process in processes:
         process.join()
 
     print("GRID SEARCH FINISHED")
-
     f = open("./results.txt", "w")
     f.write(str(res))
     f.close()
@@ -50,7 +49,7 @@ def parallel_grid_search(k, data, search_space, n_inputs, n_outputs):
 def grid_search(k, data, search_space, n_inputs, n_outputs, shared_res=None, lock=None):
     min_err = 10 ** 5
     val_errors = {}
-    
+
     for parameters in search_space:
         n_layers = parameters["n_layers"]
         n_neurons = parameters["n_neurons"]
@@ -63,12 +62,11 @@ def grid_search(k, data, search_space, n_inputs, n_outputs, shared_res=None, loc
         net.add_output_layer(n_neurons, n_outputs)
         err = net.k_fold(k, data, parameters)
         # frozenset because dict is not hashable
-        #val_errors[frozenset(parameters.items())] = err
+        # val_errors[frozenset(parameters.items())] = err
 
         if err < min_err:
             best_conf = parameters
-            min_err = err       
-
+            min_err = err
 
     if shared_res is not None:
         lock.acquire()
@@ -78,11 +76,30 @@ def grid_search(k, data, search_space, n_inputs, n_outputs, shared_res=None, loc
             print(f"shared_res : {shared_res}, min err: {min_err}")
         lock.release()
 
-        return 
+        return
 
     else:
         print("GRID SEARCH FINISHED")
         return (best_conf, min_err)
+
+
+def compare_models(n, data, parameters, n_inputs, n_outputs):
+    nets_errors = {}
+    n_layers = parameters["n_layers"]
+    n_neurons = parameters["n_neurons"]
+    for _ in np.arange(n):
+
+        net = NeuralNetwork()
+        net.add_input_layer(n_inputs, randomize_weights=True)
+        net.add_hidden_layer(n_inputs, n_neurons, randomize_weights=True)
+        for _ in np.arange(n_layers - 1):
+            net.add_hidden_layer(n_neurons, n_neurons, randomize_weights=True)
+
+        net.add_output_layer(n_neurons, n_outputs, randomize_weights=True)
+        err = net.hold_out(data, parameters, randomize_shuffle=False)
+        nets_errors[net] = err
+
+    return nets_errors
 
 
 def plot_loss(losses: np.ndarray, cost_fun: str):

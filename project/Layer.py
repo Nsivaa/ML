@@ -10,7 +10,7 @@ class Layer:
         The input layer is modelled as a layer with 1 input and n neurons so its weights are a single row and are actually the input values
     '''
 
-    def __init__(self, n_inputs: int = 0, n_neurons: int = 0, is_input: bool = False):
+    def __init__(self, n_inputs: int = 0, n_neurons: int = 0, is_input: bool = False, randomize_weights: bool = False):
         self.is_input = is_input
         self.n_input = n_inputs
         self.n_neurons = n_neurons
@@ -23,7 +23,9 @@ class Layer:
         if self.is_input:
             self.weights = np.zeros(n_neurons)
         else:
-            np.random.seed(0)
+        
+            if not randomize_weights:
+                np.random.seed(0)
 
             self.weights = 0, 1 * np.random.randn(n_inputs, n_neurons)
             self.weights = self.weights[1]
