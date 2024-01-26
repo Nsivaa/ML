@@ -257,6 +257,7 @@ class NeuralNetwork:
 
         for epoch in np.arange(1, epochs + 1):
             # shuffle dataframe before each epoch
+            np.random.seed()
             tr_data = tr_data.sample(frac=1)
             if linear_decay and epochs_update_counter == epochs_update:
                 epochs_update_counter = 0

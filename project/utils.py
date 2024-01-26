@@ -95,12 +95,14 @@ def compare_models(n, data, parameters, n_inputs, n_outputs):
         net.add_hidden_layer(n_inputs, n_neurons, randomize_weights=True)
         for _ in np.arange(n_layers - 1):
             net.add_hidden_layer(n_neurons, n_neurons, randomize_weights=True)
+        print(f"HIDDEN LAYER:{net.hidden_layers[0]}")
         net.add_output_layer(n_neurons, n_outputs, randomize_weights=True)
+        initial_net = net #SAVE THE NON-TRAINED NET
         err = net.hold_out(data, parameters, randomize_shuffle=False)
         nets_errors.append(err)
         if err < min_err:
             min_err = err
-            best_net = net
+            best_net = initial_net
 
     variance = np.var(nets_errors)
     bias = np.mean(nets_errors)
