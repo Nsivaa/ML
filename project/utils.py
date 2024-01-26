@@ -84,7 +84,8 @@ def grid_search(k, data, search_space, n_inputs, n_outputs, shared_res=None, loc
 
 
 def compare_models(n, data, parameters, n_inputs, n_outputs):
-    nets_errors = {}
+    nets_errors = []
+    min_err = 10**5
     n_layers = parameters["n_layers"]
     n_neurons = parameters["n_neurons"]
     for _ in np.arange(n):
@@ -94,12 +95,16 @@ def compare_models(n, data, parameters, n_inputs, n_outputs):
         net.add_hidden_layer(n_inputs, n_neurons, randomize_weights=True)
         for _ in np.arange(n_layers - 1):
             net.add_hidden_layer(n_neurons, n_neurons, randomize_weights=True)
-
         net.add_output_layer(n_neurons, n_outputs, randomize_weights=True)
         err = net.hold_out(data, parameters, randomize_shuffle=False)
-        nets_errors[net] = err
+        nets_errors.append(err)
+        if err < min_err:
+            min_err = err
+            best_net = net
 
-    return nets_errors
+    variance = np.var(nets_errors)
+    bias = np.mean(nets_errors)
+    return best_net, variance, bias
 
 
 def plot_loss(losses: np.ndarray, cost_fun: str):

@@ -330,26 +330,12 @@ class NeuralNetwork:
         print(f"Valid error:{valid_err} with par {parameters}")
         return valid_err
 
-    def __len__(self):
-        '''Return the number of layers of the network'''
-
-        res = 0
-        if self.input_layer is not None:
-            res += 1
-
-        if self.hidden_layers is not None:
-            res += len(self.hidden_layers)
-
-        if self.output_layer is not None:
-            res += 1
-        return res
-
 
     def hold_out(self, data, parameters, randomize_shuffle = True):
         if "ID" in data.columns:
             data.drop(["ID"], axis=1, inplace=True)
         if randomize_shuffle:
-            np.random.seed(None)
+            np.random.seed()
         else:
             np.random.seed(0)
 
@@ -366,6 +352,24 @@ class NeuralNetwork:
                                                 parameters["cost_fun"])
         print(f"Valid error:{valid_err} with par {parameters}")
         return valid_err
+    
+
+    def __len__(self):
+        '''Return the number of layers of the network'''
+
+        res = 0
+        if self.input_layer is not None:
+            res += 1
+
+        if self.hidden_layers is not None:
+            res += len(self.hidden_layers)
+
+        if self.output_layer is not None:
+            res += 1
+        return res
+
+
+    
 
     def number_of_nodes(self):
         res = 0
