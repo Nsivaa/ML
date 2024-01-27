@@ -1,10 +1,7 @@
 import numpy as np
-import warnings
-warnings.filterwarnings('ignore')
-
 
 def relu(x):
-    return np.where(x > 0, x, 0.01 * x)
+    return np.where(x > 0, x, 0)
 
 
 def D_relu(x):
@@ -24,7 +21,7 @@ def tanh(x):
 
 
 def D_tanh(x):
-    return 1. - np.tanh(x) ** 2
+    return 1 - np.tanh(x) ** 2
 
 
 def sigmoid(x):
@@ -79,8 +76,6 @@ def bin_cross_entropy(netOut: float, sampleOut: int):
      When the observation belongs to class 1 (sampleOut = 1) the first part of the formula becomes active
      and the second part vanishes and vice versa in the case observation's actual class is 0.
     '''
-    np.seterr(divide = 'ignore') 
-    np.seterr(invalid = 'ignore') 
 
     return -(sampleOut * np.log(netOut) + (1 - sampleOut) * np.log(1 - netOut))
 
@@ -90,14 +85,3 @@ def mse(netOut: np.ndarray, sampleOut: np.ndarray):
     for i in np.arange(0, netOut.size):
         s += np.square(netOut[i] - sampleOut[i]) 
     return 0.5 * s
-
-
-def accuracy(netOut: float, sampleOut: int):
-    pred = 0
-    if netOut >= 0.5:
-        pred = 1
-    
-    if pred == sampleOut:
-        return 1
-    
-    return 0

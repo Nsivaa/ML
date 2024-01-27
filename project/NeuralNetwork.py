@@ -87,7 +87,7 @@ class NeuralNetwork:
         else:
             return None
 
-    def outLayerBackpropagation(self, label):
+    def outLayerBackpropagation(self, label,activationFunc):
         # output layer
         self.output_layer.bias_gradients = np.zeros(
             self.output_layer.n_neurons)
@@ -98,10 +98,11 @@ class NeuralNetwork:
         for i in np.arange(0, self.output_layer.n_neurons):
             '''
             i è l'i-esimo neurone del layer
-            Per MSE delta_i = (d_i - o_i) * f'(net(i) ma f' = 1 => delta_i = (d_i - o_i)
+            Per MSE delta_i = (d_i - o_i) * f'(net(i)) 
             Per Cross-Entropy delta_i = [(d_i - o_i)/(o_i - o_i^2)] * f'(net(i)) ma f' = (o_i - o_i^2) => delta = (d_i - o_i)
             '''
-            delta = label[i] - self.output_layer.output[i]
+            net=np.dot(self.hidden_layers[-1].output,self.output_layer.weights[:,i])+self.output_layer.biases[0][i]
+            delta = (label[i] - self.output_layer.output[i])*derivative(activationFunc,net)
             self.output_layer.bias_gradients[i] = delta
             # gradiente_w_j,i = bias_i * o_j
             self.output_layer.weight_gradients[:,
@@ -128,7 +129,7 @@ class NeuralNetwork:
             # considero delta del neurone il corrispettivo valore del gradiente (sono lo stesso valore)
             for i in np.arange(0, layer.n_neurons):
                 # i è l'i-esimo neurone del layer
-                # delta_i = (sommatoria(per tutti i neuroni k del layer successivo)(delta_k * w_i,k)* Drelu(net(i))
+                # delta_i = (sommatoria(per tutti i neuroni k del layer successivo)(delta_k * w_i,k)* D(net(i))
                 sum = 0
                 for k in np.arange(0, next_layer.n_neurons):
                     sum += next_layer.bias_gradients[k] * \
@@ -157,11 +158,11 @@ class NeuralNetwork:
             layer.acc_weight_gradients = np.zeros(
                 (layer.n_input, layer.n_neurons))
 
-    def update_weights(self, n: int, eta, momentum, ridge_lambda, lasso_lambda, clip_value=None, eta0=None, max_steps=None, step=0):
+    def update_weights(self, n: int, eta, momentum, ridge_lambda, lasso_lambda, clip_value=None, eta0=0, decay_max_steps=None, step=0):
 
-        if eta0 is not None:
-            alpha = step/max_steps
-            eta = eta0 * (1-alpha) + alpha * eta0 / 100
+        if decay_max_steps is not None:
+            decay_alpha = step/decay_max_steps
+            eta = eta0 * (1-decay_alpha) + decay_alpha * eta0 / 100
         if lasso_lambda is None and ridge_lambda is None:
             ridge_lambda = 0
         for layer in np.arange(len(self.hidden_layers), -1, -1) - 1:
@@ -240,12 +241,12 @@ class NeuralNetwork:
         clip_value = params["clip_value"]
         ridge_lambda = params["ridge_lambda"]
         lasso_lambda = params["lasso_lambda"]
-        if params["linear_decay"] is not None:
+        if params["decay_epochs_update"] is not None and params["decay_max_steps"] is not None:
             linear_decay = True
-            eta0 = params["eta0"]
-            decay_max_steps = params["max_steps"]
+            decay_max_steps = params["decay_max_steps"]
             decay_step = 0
-            epochs_update = params["epochs_update"]
+            eta0=eta
+            epochs_update = params["decay_epochs_update"]
         else:
             linear_decay = False
 
@@ -259,8 +260,7 @@ class NeuralNetwork:
             # shuffle dataframe before each epoch
             np.random.seed()
             tr_data = tr_data.sample(frac=1)
-            if linear_decay and epochs_update_counter == epochs_update:
-                epochs_update_counter = 0
+            if linear_decay and epoch%epochs_update == 0 and decay_step<decay_max_steps:
                 decay_step += 1
 
             for step in np.arange(0, n / mb):
@@ -268,9 +268,9 @@ class NeuralNetwork:
                 self.reset_accumulators()
                 # preparazione mb_Dataframe
                 start_pos = int(step * mb)
-                end_pos = int(start_pos + mb - 1)
+                end_pos = int(start_pos + mb)
                 if end_pos >= n:
-                    end_pos = int(n - 1)
+                    end_pos = int(n)
                 labels = tr_data[["Class"]].iloc[start_pos:end_pos, :]
                 data = (tr_data.drop(["Class"], axis=1)
                         ).iloc[start_pos:end_pos, :]
@@ -280,25 +280,27 @@ class NeuralNetwork:
                     self.forwardPropagation(
                         row, label, hid_act_fun, out_act_fun, cost_fun)
                     # backPropagation
-                    self.outLayerBackpropagation(label)
+                    self.outLayerBackpropagation(label,out_act_fun)
                     # hidden layers
                     self.hiddenLayerBackpropagation(hid_act_fun)
 
                 # aggiornamento dei pesi
                 if linear_decay:
                     self.update_weights(mb, eta, momentum, ridge_lambda, lasso_lambda,
-                                        clip_value, eta0=eta0, max_steps=decay_max_steps, step=decay_step)
+                                        eta0=eta0, decay_max_steps=decay_max_steps, step=decay_step)
                 else:
                     self.update_weights(mb, eta, momentum,
                                         ridge_lambda, lasso_lambda, clip_value)
 
                 # new Total error with MSE
                 # debug per clipping
-                tot_err = self.calcError(
-                    data, labels, hid_act_fun, out_act_fun, cost_fun)
+                
                 # print(
                 # f"Epoch = {epoch}, mb = {(int(step + 1))} total Error post-training = {tot_err}")
-
+            labels = tr_data[["Class"]]
+            data = tr_data.drop(["Class"], axis=1)
+            tot_err = self.calcError(
+                    data, labels, hid_act_fun, out_act_fun, cost_fun)
             errors.append(tot_err)
             # end epoch
 
