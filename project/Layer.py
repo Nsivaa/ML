@@ -23,13 +23,11 @@ class Layer:
         if self.is_input:
             self.weights = np.zeros(n_neurons)
         else:
-        
+            self.weights=np.zeros((n_inputs,n_neurons))
             if not randomize_weights:
                 np.random.seed(0)
             else:
                 np.random.seed()
-            self.weights = 0, 1 * np.random.randn(n_inputs, n_neurons)
-            self.weights = self.weights[1]
             # xavier normalization for weight inizialization
             shape = self.weights.shape
             self.weights = np.random.randn(

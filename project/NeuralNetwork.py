@@ -324,6 +324,7 @@ class NeuralNetwork:
             tr_set = pd.concat(
                 [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
             self.train(tr_set, parameters)
+            print(tr_set)
             valid_labels = fold[["Class"]]
             valid_data = fold.drop(["Class"], axis=1)
             valid_err_accumulator += self.calcError(valid_data, valid_labels,

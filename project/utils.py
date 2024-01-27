@@ -9,8 +9,7 @@ import itertools
 def get_search_space(grid):
     tuple_search_space = list(itertools.product(grid["eta"], grid["mb"], grid["momentum"], grid["n_layers"], grid["n_neurons"], grid["epochs"],
                                                 grid["clip_value"], grid["hid_act_fun"], grid["out_act_fun"], grid[
-                                                    "cost_fun"], grid["ridge_lambda"], grid["lasso_lambda"],
-                                                grid["linear_decay"], grid["eta0"], grid["max_steps"], grid["epochs_update"]))
+                                                    "cost_fun"], grid["ridge_lambda"], grid["lasso_lambda"], grid["decay_max_steps"], grid["decay_epochs_update"]))
     dict_search_space = []
     for conf in tuple_search_space:
         dict_search_space.append(dict(zip(grid.keys(), conf)))
@@ -54,12 +53,12 @@ def grid_search(k, data, search_space, n_inputs, n_outputs, shared_res=None, loc
         n_layers = parameters["n_layers"]
         n_neurons = parameters["n_neurons"]
         net = NeuralNetwork()
-        net.add_input_layer(n_inputs)
-        net.add_hidden_layer(n_inputs, n_neurons)
+        net.add_input_layer(n_inputs,randomize_weights=False)
+        net.add_hidden_layer(n_inputs, n_neurons,randomize_weights=False)
         for _ in np.arange(n_layers - 1):
-            net.add_hidden_layer(n_neurons, n_neurons)
+            net.add_hidden_layer(n_neurons, n_neurons,randomize_weights=False)
 
-        net.add_output_layer(n_neurons, n_outputs)
+        net.add_output_layer(n_neurons, n_outputs,randomize_weights=False)
         err = net.k_fold(k, data, parameters)
         # frozenset because dict is not hashable
         # val_errors[frozenset(parameters.items())] = err
