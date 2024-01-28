@@ -85,3 +85,14 @@ def mse(netOut: np.ndarray, sampleOut: np.ndarray):
     for i in np.arange(0, netOut.size):
         s += np.square(netOut[i] - sampleOut[i]) 
     return 0.5 * s
+
+#retituisce 1 per match, 0 else
+def accuracy(netOut, sampleOut):
+    if netOut >= 0.5:
+        netOut =1
+    else:
+        netOut = 0
+
+    if netOut == sampleOut:
+        return 1
+    return 0

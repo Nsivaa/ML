@@ -9,7 +9,7 @@ import itertools
 def get_search_space(grid):
     tuple_search_space = list(itertools.product(grid["eta"], grid["mb"], grid["momentum"], grid["n_layers"], grid["n_neurons"], grid["epochs"],
                                                 grid["clip_value"], grid["hid_act_fun"], grid["out_act_fun"], grid[
-                                                    "cost_fun"], grid["ridge_lambda"], grid["lasso_lambda"], grid["decay_max_steps"], grid["decay_epochs_update"]))
+                                                    "cost_fun"], grid["ridge_lambda"], grid["lasso_lambda"], grid["decay_max_steps"], grid["decay_min_value"]))
     dict_search_space = []
     for conf in tuple_search_space:
         dict_search_space.append(dict(zip(grid.keys(), conf)))
@@ -53,12 +53,12 @@ def grid_search(k, data, search_space, n_inputs, n_outputs, shared_res=None, loc
         n_layers = parameters["n_layers"]
         n_neurons = parameters["n_neurons"]
         net = NeuralNetwork()
-        net.add_input_layer(n_inputs,randomize_weights=False)
-        net.add_hidden_layer(n_inputs, n_neurons,randomize_weights=False)
+        net.add_input_layer(n_inputs)
+        net.add_hidden_layer(n_inputs, n_neurons)
         for _ in np.arange(n_layers - 1):
-            net.add_hidden_layer(n_neurons, n_neurons,randomize_weights=False)
+            net.add_hidden_layer(n_neurons, n_neurons)
 
-        net.add_output_layer(n_neurons, n_outputs,randomize_weights=False)
+        net.add_output_layer(n_neurons, n_outputs)
         err = net.k_fold(k, data, parameters)
         # frozenset because dict is not hashable
         # val_errors[frozenset(parameters.items())] = err
@@ -108,7 +108,7 @@ def compare_models(n, data, parameters, n_inputs, n_outputs):
     return best_net, variance, bias
 
 
-def plot_loss(losses: np.ndarray, cost_fun: str):
+def plot_loss(losses: np.ndarray, cost_fun: str,test_losses=None):
     iterations = np.arange(len(losses))
     plt.title("Learning Curve")
     plt.xlabel("Epochs")
@@ -118,6 +118,10 @@ def plot_loss(losses: np.ndarray, cost_fun: str):
         plt.ylabel("Cross Entropy Loss")
 
     plt.plot(iterations, losses, color="green")
+    if test_losses is not None:
+        iterations = np.arange(len(test_losses))
+        plt.plot(iterations, test_losses, color="black")
+    plt.legend()
     plt.show()
 
 
@@ -128,3 +132,5 @@ def process_monk_data(data: pd.DataFrame):
     data = pd.get_dummies(
         data, columns=["a1", "a2", "a3", "a4", "a5", "a6"], dtype=int)
     return data
+
+

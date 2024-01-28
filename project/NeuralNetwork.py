@@ -3,6 +3,7 @@ import pandas as pd
 from math_utils import *
 from Layer import *
 
+
 # TODO: cambiare bias in bias[0](in modo da avere un vettore e non una matrice con una riga) e modificare tutto di conseguenza
 
 
@@ -28,7 +29,7 @@ class NeuralNetwork:
 
         return
 
-    def add_input_layer(self, n_neurons: int = 0, randomize_weights = True):
+    def add_input_layer(self, n_neurons: int = 0, randomize_weights=True):
         self.input_layer = Layer(
             n_inputs=1, n_neurons=n_neurons, is_input=True, randomize_weights=randomize_weights)
         return
@@ -38,7 +39,7 @@ class NeuralNetwork:
         The layer is created with the number of weights for each neuron relative to the previous layer
     '''
 
-    def add_hidden_layer(self, n_inputs: int = 0, n_neurons: int = 0, pos: int = -1, randomize_weights = True):
+    def add_hidden_layer(self, n_inputs: int = 0, n_neurons: int = 0, pos: int = -1, randomize_weights=True):
         layer = Layer(n_inputs, n_neurons, is_input=False, randomize_weights=randomize_weights)
         if pos == -1:
             self.hidden_layers.append(layer)
@@ -47,8 +48,8 @@ class NeuralNetwork:
             self.hidden_layers.insert(pos, layer)
         return
 
-    def add_output_layer(self, n_inputs: int = 0, n_neurons: int = 0 , randomize_weights = True):
-        self.output_layer = Layer(n_inputs, n_neurons, is_input=False, randomize_weights= randomize_weights)
+    def add_output_layer(self, n_inputs: int = 0, n_neurons: int = 0, randomize_weights=True):
+        self.output_layer = Layer(n_inputs, n_neurons, is_input=False, randomize_weights=randomize_weights)
 
         return
 
@@ -87,7 +88,7 @@ class NeuralNetwork:
         else:
             return None
 
-    def outLayerBackpropagation(self, label,activationFunc):
+    def outLayerBackpropagation(self, label, activationFunc):
         # output layer
         self.output_layer.bias_gradients = np.zeros(
             self.output_layer.n_neurons)
@@ -101,12 +102,13 @@ class NeuralNetwork:
             Per MSE delta_i = (d_i - o_i) * f'(net(i)) 
             Per Cross-Entropy delta_i = [(d_i - o_i)/(o_i - o_i^2)] * f'(net(i)) ma f' = (o_i - o_i^2) => delta = (d_i - o_i)
             '''
-            net=np.dot(self.hidden_layers[-1].output,self.output_layer.weights[:,i])+self.output_layer.biases[0][i]
-            delta = (label[i] - self.output_layer.output[i])*derivative(activationFunc,net)
+            net = np.dot(self.hidden_layers[-1].output, self.output_layer.weights[:, i]) + self.output_layer.biases[0][
+                i]
+            delta = (label[i] - self.output_layer.output[i]) * derivative(activationFunc, net)
             self.output_layer.bias_gradients[i] = delta
             # gradiente_w_j,i = bias_i * o_j
             self.output_layer.weight_gradients[:,
-                                               i] = delta * self.hidden_layers[-1].output
+            i] = delta * self.hidden_layers[-1].output
 
         self.output_layer.acc_bias_gradients += self.output_layer.bias_gradients
         self.output_layer.acc_weight_gradients += self.output_layer.weight_gradients
@@ -133,11 +135,11 @@ class NeuralNetwork:
                 sum = 0
                 for k in np.arange(0, next_layer.n_neurons):
                     sum += next_layer.bias_gradients[k] * \
-                        next_layer.weights[i][k]
+                           next_layer.weights[i][k]
 
                 delta = sum * \
-                    derivative(act_fun, (np.dot(prec_layer.output,
-                                                layer.weights[:, i]) + layer.biases[0][i]))
+                        derivative(act_fun, (np.dot(prec_layer.output,
+                                                    layer.weights[:, i]) + layer.biases[0][i]))
                 layer.bias_gradients[i] = delta
                 # gradiente_w_j,i = bias_i * o_j
                 layer.weight_gradients[:, i] = delta * prec_layer.output
@@ -158,11 +160,12 @@ class NeuralNetwork:
             layer.acc_weight_gradients = np.zeros(
                 (layer.n_input, layer.n_neurons))
 
-    def update_weights(self, n: int, eta, momentum, ridge_lambda, lasso_lambda, clip_value=None, eta0=0, decay_max_steps=None, step=0):
+    def update_weights(self, n: int, eta, momentum, ridge_lambda, lasso_lambda, clip_value=None, eta0=0,
+                       decay_max_steps=None, decay_min_value=None, step=0):
 
         if decay_max_steps is not None:
-            decay_alpha = step/decay_max_steps
-            eta = eta0 * (1-decay_alpha) + decay_alpha * eta0 / 100
+            decay_alpha = step / decay_max_steps
+            eta = eta0 * (1 - decay_alpha) + (decay_alpha * eta0 / decay_min_value)
         if lasso_lambda is None and ridge_lambda is None:
             ridge_lambda = 0
         for layer in np.arange(len(self.hidden_layers), -1, -1) - 1:
@@ -177,24 +180,24 @@ class NeuralNetwork:
             if lasso_lambda is None:
                 if momentum is None:
                     layer.weights += eta * \
-                        (layer.acc_weight_gradients / n) - \
-                        (2 * ridge_lambda * layer.weights)
+                                     (layer.acc_weight_gradients / n) - \
+                                     (2 * ridge_lambda * layer.weights)
                     layer.biases[0] += eta * (layer.acc_bias_gradients / n)
                 else:
                     layer.weights += eta * \
-                        (layer.acc_weight_gradients / n) + \
-                        layer.momentum_velocity_w * momentum - \
-                        (2 * ridge_lambda * layer.weights)
+                                     (layer.acc_weight_gradients / n) + \
+                                     layer.momentum_velocity_w * momentum - \
+                                     (2 * ridge_lambda * layer.weights)
                     layer.biases[0] += eta * (layer.acc_bias_gradients / n) + \
-                        layer.momentum_velocity_b * momentum
+                                       layer.momentum_velocity_b * momentum
 
                     # update velocities
                     layer.momentum_velocity_w = eta * \
-                        (layer.acc_weight_gradients / n) + \
-                        layer.momentum_velocity_w * momentum
+                                                (layer.acc_weight_gradients / n) + \
+                                                layer.momentum_velocity_w * momentum
                     layer.momentum_velocity_b = eta * \
-                        (layer.acc_bias_gradients / n) + \
-                        layer.momentum_velocity_b * momentum
+                                                (layer.acc_bias_gradients / n) + \
+                                                layer.momentum_velocity_b * momentum
             else:
                 # nella formula del gradiente con lasso regression si ha la derivata del valore assoluto dei pesi
                 # perciò la derivata, che si sommerà ad eta e al momentum nel calcolo del nuovo peso sarà:
@@ -203,22 +206,22 @@ class NeuralNetwork:
                     layer.weights >= 0, -1, 1)
                 if momentum is None:
                     layer.weights += eta * \
-                        (layer.acc_weight_gradients / n) + lasso_lambda_matrix
+                                     (layer.acc_weight_gradients / n) + lasso_lambda_matrix
                     layer.biases[0] += eta * (layer.acc_bias_gradients / n)
                 else:
                     layer.weights += eta * \
-                        (layer.acc_weight_gradients / n) + \
-                        layer.momentum_velocity_w * momentum + lasso_lambda_matrix
+                                     (layer.acc_weight_gradients / n) + \
+                                     layer.momentum_velocity_w * momentum + lasso_lambda_matrix
                     layer.biases[0] += eta * (layer.acc_bias_gradients / n) + \
-                        layer.momentum_velocity_b * momentum
+                                       layer.momentum_velocity_b * momentum
 
                     # update velocities
                     layer.momentum_velocity_w = eta * \
-                        (layer.acc_weight_gradients / n) + \
-                        layer.momentum_velocity_w * momentum
+                                                (layer.acc_weight_gradients / n) + \
+                                                layer.momentum_velocity_w * momentum
                     layer.momentum_velocity_b = eta * \
-                        (layer.acc_bias_gradients / n) + \
-                        layer.momentum_velocity_b * momentum
+                                                (layer.acc_bias_gradients / n) + \
+                                                layer.momentum_velocity_b * momentum
 
     # n_mb -> minibatch size
     # TODO: il parametro di regolarizzazione si è scelto di non considerarlo nell'aggiornamento della velocità del momentum così da mantenerlo indipendente da eta e alpha (momentum)
@@ -230,7 +233,7 @@ class NeuralNetwork:
         Lambda dovrebbe esser moltiplicato per mb/n ma si evita in quanto il parametro sarò automaticamente selezionato nelle grid search
     '''
 
-    def train(self, tr_data: pd.DataFrame, params):
+    def train(self, tr_data: pd.DataFrame, params, test_data=None):
         mb = params["mb"]
         epochs = params["epochs"]
         hid_act_fun = params["hid_act_fun"]
@@ -241,26 +244,33 @@ class NeuralNetwork:
         clip_value = params["clip_value"]
         ridge_lambda = params["ridge_lambda"]
         lasso_lambda = params["lasso_lambda"]
-        if params["decay_epochs_update"] is not None and params["decay_max_steps"] is not None:
+        if params["decay_min_value"] is not None and params["decay_max_steps"] is not None:
             linear_decay = True
             decay_max_steps = params["decay_max_steps"]
             decay_step = 0
-            eta0=eta
-            epochs_update = params["decay_epochs_update"]
+            eta0 = eta
+            decay_min_value = params["decay_min_value"]
         else:
             linear_decay = False
 
         if "ID" in tr_data:
             tr_data.drop(["ID"], axis=1, inplace=True)
         n = tr_data.shape[0]
-        errors = []
+        train_errors = []
+        acc_train_err = []
+        if test_data is not None and "ID" in test_data:
+            test_data.drop(["ID"], axis=1, inplace=True)
+            n_test = test_data.shape[0]
+            test_errors = []
+            acc_test_err = []
+
         epochs_update_counter = 0
 
         for epoch in np.arange(1, epochs + 1):
             # shuffle dataframe before each epoch
             np.random.seed()
             tr_data = tr_data.sample(frac=1)
-            if linear_decay and epoch%epochs_update == 0 and decay_step<decay_max_steps:
+            if linear_decay and decay_step < decay_max_steps:
                 decay_step += 1
 
             for step in np.arange(0, n / mb):
@@ -280,32 +290,47 @@ class NeuralNetwork:
                     self.forwardPropagation(
                         row, label, hid_act_fun, out_act_fun, cost_fun)
                     # backPropagation
-                    self.outLayerBackpropagation(label,out_act_fun)
+                    self.outLayerBackpropagation(label, out_act_fun)
                     # hidden layers
                     self.hiddenLayerBackpropagation(hid_act_fun)
 
                 # aggiornamento dei pesi
                 if linear_decay:
                     self.update_weights(mb, eta, momentum, ridge_lambda, lasso_lambda,
-                                        eta0=eta0, decay_max_steps=decay_max_steps, step=decay_step)
+                                        eta0=eta0, decay_max_steps=decay_max_steps, step=decay_step,
+                                        decay_min_value=decay_min_value)
                 else:
                     self.update_weights(mb, eta, momentum,
                                         ridge_lambda, lasso_lambda, clip_value)
 
                 # new Total error with MSE
                 # debug per clipping
-                
+
                 # print(
                 # f"Epoch = {epoch}, mb = {(int(step + 1))} total Error post-training = {tot_err}")
             labels = tr_data[["Class"]]
             data = tr_data.drop(["Class"], axis=1)
             tot_err = self.calcError(
-                    data, labels, hid_act_fun, out_act_fun, cost_fun)
-            errors.append(tot_err)
+                data, labels, hid_act_fun, out_act_fun, cost_fun)
+            train_errors.append(tot_err)
+            acc_train_err.append(self.calcError(
+                data, labels, hid_act_fun, out_act_fun, "accuracy"))
+            if test_data is not None:
+                labels = test_data[["Class"]]
+                data = test_data.drop(["Class"], axis=1)
+                test_errors.append(self.calcError(
+                    data, labels, hid_act_fun, out_act_fun, cost_fun))
+                acc_test_err.append(self.calcError(
+                    data, labels, hid_act_fun, out_act_fun, "accuracy"))
+
+
             # end epoch
 
         print("end Training")
-        return errors
+        if test_data is not None:
+            return test_errors, train_errors, acc_test_err, acc_train_err
+
+        return train_errors, acc_train_err
 
     def k_fold(self, k, data, parameters):
         '''
@@ -315,12 +340,11 @@ class NeuralNetwork:
         '''
         if "ID" in data.columns:
             data.drop(["ID"], axis=1, inplace=True)
-        np.random.seed(None)
+        np.random.seed()
         data = data.sample(frac=1)
         folds = np.array_split(data, k)
         valid_err_accumulator = 0
         for fold in folds:
-
             tr_set = pd.concat(
                 [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
             self.train(tr_set, parameters)
@@ -334,8 +358,7 @@ class NeuralNetwork:
         print(f"Valid error:{valid_err} with par {parameters}")
         return valid_err
 
-
-    def hold_out(self, data, parameters, randomize_shuffle = True):
+    def hold_out(self, data, parameters, randomize_shuffle=True):
         if "ID" in data.columns:
             data.drop(["ID"], axis=1, inplace=True)
         if randomize_shuffle:
@@ -352,11 +375,10 @@ class NeuralNetwork:
         valid_labels = test_set[["Class"]]
         valid_data = test_set.drop(["Class"], axis=1)
         valid_err = self.calcError(valid_data, valid_labels,
-                                                parameters["hid_act_fun"], parameters["out_act_fun"],
-                                                parameters["cost_fun"])
+                                   parameters["hid_act_fun"], parameters["out_act_fun"],
+                                   parameters["cost_fun"])
         print(f"Valid error:{valid_err} with par {parameters}")
         return valid_err
-    
 
     def __len__(self):
         '''Return the number of layers of the network'''
@@ -371,9 +393,6 @@ class NeuralNetwork:
         if self.output_layer is not None:
             res += 1
         return res
-
-
-    
 
     def number_of_nodes(self):
         res = 0
