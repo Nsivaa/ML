@@ -122,7 +122,27 @@ def plot_loss(losses: np.ndarray, cost_fun: str,test_losses=None):
         iterations = np.arange(len(test_losses))
         plt.plot(iterations, test_losses, color="black")
     plt.legend()
-    plt.show()
+    plt.show
+    
+def plot_loss_Monk(losses: np.ndarray, cost_fun: str,ax,test_losses=None):
+    iterations = np.arange(len(losses))
+    ax.set_xlabel("Epochs")
+    if cost_fun == "mse":
+        ax.set_ylabel("MSE Loss")
+        ax.set_title("Learning Curve")
+        label1="training loss"
+        label2="test loss"
+    elif cost_fun == "acc":
+        ax.set_title("Learning Curve")
+        ax.set_ylabel("Accuracy")
+        label1="training accuracy"
+        label2="test accuracy"
+
+    loss= ax.plot(iterations, losses, color="black", label = label1)
+    if test_losses is not None:
+        iterations = np.arange(len(test_losses))
+        test=ax.plot(iterations, test_losses, color="red",linestyle='--',label= label2)
+    ax.legend()
 
 
 def process_monk_data(data: pd.DataFrame):
