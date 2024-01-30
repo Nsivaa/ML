@@ -40,8 +40,7 @@ class NeuralNetwork:
     '''
 
     def add_hidden_layer(self, n_inputs: int = 0, n_neurons: int = 0, pos: int = -1, randomize_weights=True):
-        layer = Layer(n_inputs, n_neurons, is_input=False,
-                      randomize_weights=randomize_weights)
+        layer = Layer(n_inputs, n_neurons, is_input=False, randomize_weights=randomize_weights)
         if pos == -1:
             self.hidden_layers.append(layer)
 
@@ -50,8 +49,7 @@ class NeuralNetwork:
         return
 
     def add_output_layer(self, n_inputs: int = 0, n_neurons: int = 0, randomize_weights=True):
-        self.output_layer = Layer(
-            n_inputs, n_neurons, is_input=False, randomize_weights=randomize_weights)
+        self.output_layer = Layer(n_inputs, n_neurons, is_input=False, randomize_weights=randomize_weights)
 
         return
 
@@ -106,12 +104,11 @@ class NeuralNetwork:
             '''
             net = np.dot(self.hidden_layers[-1].output, self.output_layer.weights[:, i]) + self.output_layer.biases[0][
                 i]
-            delta = (label[i] - self.output_layer.output[i]) * \
-                derivative(activationFunc, net)
+            delta = (label[i] - self.output_layer.output[i]) * derivative(activationFunc, net)
             self.output_layer.bias_gradients[i] = delta
             # gradiente_w_j,i = bias_i * o_j
             self.output_layer.weight_gradients[:,
-                                               i] = delta * self.hidden_layers[-1].output
+            i] = delta * self.hidden_layers[-1].output
 
         self.output_layer.acc_bias_gradients += self.output_layer.bias_gradients
         self.output_layer.acc_weight_gradients += self.output_layer.weight_gradients
@@ -138,11 +135,11 @@ class NeuralNetwork:
                 sum = 0
                 for k in np.arange(0, next_layer.n_neurons):
                     sum += next_layer.bias_gradients[k] * \
-                        next_layer.weights[i][k]
+                           next_layer.weights[i][k]
 
                 delta = sum * \
-                    derivative(act_fun, (np.dot(prec_layer.output,
-                                                layer.weights[:, i]) + layer.biases[0][i]))
+                        derivative(act_fun, (np.dot(prec_layer.output,
+                                                    layer.weights[:, i]) + layer.biases[0][i]))
                 layer.bias_gradients[i] = delta
                 # gradiente_w_j,i = bias_i * o_j
                 layer.weight_gradients[:, i] = delta * prec_layer.output
@@ -168,8 +165,7 @@ class NeuralNetwork:
 
         if decay_max_steps is not None:
             decay_alpha = step / decay_max_steps
-            eta = eta0 * (1 - decay_alpha) + \
-                (decay_alpha * eta0 / decay_min_value)
+            eta = eta0 * (1 - decay_alpha) + (decay_alpha * eta0 / decay_min_value)
         if lasso_lambda is None and ridge_lambda is None:
             ridge_lambda = 0
         for layer in np.arange(len(self.hidden_layers), -1, -1) - 1:
@@ -184,15 +180,15 @@ class NeuralNetwork:
             if ridge_lambda is not None:
                 if momentum is None:
                     layer.weights += eta * \
-                        (layer.acc_weight_gradients / n) - \
-                        (2 * ridge_lambda * layer.weights)
+                                     (layer.acc_weight_gradients / n) - \
+                                     (2 * ridge_lambda * layer.weights)
                     layer.biases[0] += eta * (layer.acc_bias_gradients / n)
                 else:
-                    deltaW = eta * (layer.acc_weight_gradients / n) + \
-                        layer.momentum_velocity_w * momentum - \
-                        (2 * ridge_lambda * layer.weights)
-                    deltaB = eta * (layer.acc_bias_gradients / n) + \
-                        layer.momentum_velocity_b * momentum
+                    deltaW=eta * (layer.acc_weight_gradients / n) + \
+                                     layer.momentum_velocity_w * momentum - \
+                                     (2 * ridge_lambda * layer.weights)
+                    deltaB=eta * (layer.acc_bias_gradients / n) + \
+                                                layer.momentum_velocity_b * momentum
                     layer.weights += deltaW
                     layer.biases[0] += deltaB
 
@@ -207,13 +203,13 @@ class NeuralNetwork:
                     layer.weights >= 0, -1, 1)
                 if momentum is None:
                     layer.weights += eta * \
-                        (layer.acc_weight_gradients / n) + lasso_lambda_matrix
+                                     (layer.acc_weight_gradients / n) + lasso_lambda_matrix
                     layer.biases[0] += eta * (layer.acc_bias_gradients / n)
                 else:
-                    deltaW = eta * (layer.acc_weight_gradients / n) + \
-                        layer.momentum_velocity_w * momentum + lasso_lambda_matrix
-                    deltaB = eta * (layer.acc_bias_gradients / n) + \
-                        layer.momentum_velocity_b * momentum
+                    deltaW=eta * (layer.acc_weight_gradients / n) + \
+                                     layer.momentum_velocity_w * momentum + lasso_lambda_matrix
+                    deltaB=eta * (layer.acc_bias_gradients / n) + \
+                                                layer.momentum_velocity_b * momentum
                     layer.weights += deltaW
                     layer.biases[0] += deltaB
 
@@ -230,9 +226,8 @@ class NeuralNetwork:
         il termine di regolarizzazaione sarà solo aggiunto nel weight update. 
         Lambda dovrebbe esser moltiplicato per mb/n ma si evita in quanto il parametro sarò automaticamente selezionato nelle grid search
     '''
-    # test_data != None => si calcola anche validation/test loss, outFun2 != None => si calcolano anche traing e test Error
-
-    def train(self, tr_data: pd.DataFrame, params, test_data=None, outFun2: str = None):
+    #test_data != None => si calcola anche validation/test loss, outFun2 != None => si calcolano anche traing e test Error
+    def train(self, tr_data: pd.DataFrame, params, test_data=None, outFun2: str = None, type = None):
         mb = params["mb"]
         epochs = params["epochs"]
         hid_act_fun = params["hid_act_fun"]
@@ -311,22 +306,45 @@ class NeuralNetwork:
                                         ridge_lambda, lasso_lambda, clip_value)
 
             # calcolo  degli error su test e fun2
-            labels = tr_data[["Class"]]
-            data = tr_data.drop(["Class"], axis=1)
+            if type == "monk":
+                labels = tr_data[["Class"]]
+                data = tr_data.drop(["Class"], axis=1)
+            else:
+                labels = tr_data[['TARGET_x', 'TARGET_y',
+                                  'TARGET_z']]
+                data = (tr_data.drop(
+                    ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1))
             train_errors.append(self.calcError(
                 data, labels, hid_act_fun, out_act_fun, cost_fun))
+
 
             if outFun2 is not None:
                 fun2_train_err.append(self.calcError(
                     data, labels, hid_act_fun, out_act_fun, outFun2))
-            if test_data is not None:
-                labels = test_data[["Class"]]
-                data = test_data.drop(["Class"], axis=1)
+                if test_data is not None:
+                    if type == "monk":
+                        labels = test_data[["Class"]]
+                        data = test_data.drop(["Class"], axis=1)
+                    else:
+                        labels = test_data[['TARGET_x', 'TARGET_y',
+                                          'TARGET_z']]
+                        data = test_data.drop(
+                            ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
+                    test_errors.append(self.calcError(
+                        data, labels, hid_act_fun, out_act_fun, cost_fun))
+                    fun2_test_err.append(self.calcError(
+                            data, labels, hid_act_fun, out_act_fun, outFun2))
+            elif test_data is not None:
+                if type == "monk":
+                    labels = tr_data[["Class"]]
+                    data = tr_data.drop(["Class"], axis=1)
+                else:
+                    labels = tr_data[['TARGET_x', 'TARGET_y',
+                                      'TARGET_z']]
+                    data = tr_data.drop(
+                        ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
                 test_errors.append(self.calcError(
                     data, labels, hid_act_fun, out_act_fun, cost_fun))
-                if outFun2 is not None:
-                    fun2_test_err.append(self.calcError(
-                        data, labels, hid_act_fun, out_act_fun, outFun2))
 
             # end epoch
         #end training
@@ -352,21 +370,21 @@ class NeuralNetwork:
         np.random.seed()
         data = data.sample(frac=1)
         folds = np.array_split(data, k)
-        valid_errors = []
+        valid_errors=[]
         for fold in folds:
             tr_set = pd.concat(
                 [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
             self.train(tr_set, parameters)
-            # print(tr_set)
+            #print(tr_set)
             valid_labels = fold[["Class"]]
             valid_data = fold.drop(["Class"], axis=1)
             valid_errors.append(self.calcError(valid_data, valid_labels,
-                                               parameters["hid_act_fun"], parameters["out_act_fun"],
-                                               parameters["cost_fun"]))
-        valid_errors = np.array(valid_errors)
-        mean = valid_errors.mean()
-        var = valid_errors.var()
-        # print(f"Valid error:{mean}, Variance = {var}, with par {parameters}")
+                                                    parameters["hid_act_fun"], parameters["out_act_fun"],
+                                                    parameters["cost_fun"]))
+        valid_errors=np.array(valid_errors)
+        mean=valid_errors.mean()
+        var=valid_errors.var()
+        #print(f"Valid error:{mean}, Variance = {var}, with par {parameters}")
         return mean, var
 
     def hold_out(self, data, parameters, randomize_shuffle=True):
