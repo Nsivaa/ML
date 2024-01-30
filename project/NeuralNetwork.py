@@ -226,8 +226,8 @@ class NeuralNetwork:
         il termine di regolarizzazaione sarà solo aggiunto nel weight update. 
         Lambda dovrebbe esser moltiplicato per mb/n ma si evita in quanto il parametro sarò automaticamente selezionato nelle grid search
     '''
-
-    def train(self, tr_data: pd.DataFrame, params, test_data=None):
+    #test_data != None => si calcola anche validation/test loss, outFun2 != None => si calcolano anche traing e test Error
+    def train(self, tr_data: pd.DataFrame, params, test_data=None, outFun2:str = None):
         mb = params["mb"]
         epochs = params["epochs"]
         hid_act_fun = params["hid_act_fun"]
@@ -249,16 +249,17 @@ class NeuralNetwork:
 
         if "ID" in tr_data:
             tr_data.drop(["ID"], axis=1, inplace=True)
+
         n = tr_data.shape[0]
         train_errors = []
-        acc_train_err = []
-        if test_data is not None and "ID" in test_data:
-            test_data.drop(["ID"], axis=1, inplace=True)
-            n_test = test_data.shape[0]
+        if outFun2 is not None:
+            fun2_train_err = []
+        if test_data is not None:
+            if "ID" in test_data:
+                test_data.drop(["ID"], axis=1, inplace=True)
             test_errors = []
-            acc_test_err = []
-
-        epochs_update_counter = 0
+            if outFun2 is not None:
+                fun2_test_err = []
 
         for epoch in np.arange(1, epochs + 1):
             # shuffle dataframe before each epoch
@@ -297,34 +298,32 @@ class NeuralNetwork:
                     self.update_weights(mb, eta, momentum,
                                         ridge_lambda, lasso_lambda, clip_value)
 
-                # new Total error with MSE
-                # debug per clipping
-
-                # print(
-                # f"Epoch = {epoch}, mb = {(int(step + 1))} total Error post-training = {tot_err}")
+            #calcolo  degli error su test e fun2
             labels = tr_data[["Class"]]
             data = tr_data.drop(["Class"], axis=1)
-            tot_err = self.calcError(
-                data, labels, hid_act_fun, out_act_fun, cost_fun)
-            train_errors.append(tot_err)
-            acc_train_err.append(self.calcError(
-                data, labels, hid_act_fun, out_act_fun, "accuracy"))
+            train_errors.append(self.calcError(data, labels, hid_act_fun, out_act_fun, cost_fun))
+
+            if outFun2 is not None:
+                fun2_train_err.append(self.calcError(data, labels, hid_act_fun, out_act_fun, outFun2))
             if test_data is not None:
                 labels = test_data[["Class"]]
                 data = test_data.drop(["Class"], axis=1)
-                test_errors.append(self.calcError(
-                    data, labels, hid_act_fun, out_act_fun, cost_fun))
-                acc_test_err.append(self.calcError(
-                    data, labels, hid_act_fun, out_act_fun, "accuracy"))
+                test_errors.append(self.calcError(data, labels, hid_act_fun, out_act_fun, cost_fun))
+                if outFun2 is not None:
+                    fun2_test_err.append(self.calcError(data, labels, hid_act_fun, out_act_fun, outFun2))
 
 
             # end epoch
+            print("end Training")
 
-        print("end Training")
-        if test_data is not None:
-            return test_errors, train_errors, acc_test_err, acc_train_err
+        if outFun2 is not None and test_data is not None:
+            return test_errors, train_errors, fun2_test_err, fun2_train_err
+        elif outFun2 is None and test_data is not None:
+            return test_errors, train_errors
+        elif outFun2 is not None and test_data is None:
+            return train_errors, fun2_train_err
 
-        return train_errors, acc_train_err
+        return train_errors
 
     def k_fold(self, k, data, parameters):
         '''
@@ -337,20 +336,22 @@ class NeuralNetwork:
         np.random.seed()
         data = data.sample(frac=1)
         folds = np.array_split(data, k)
-        valid_err_accumulator = 0
+        valid_errors=[]
         for fold in folds:
             tr_set = pd.concat(
                 [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
             self.train(tr_set, parameters)
-            print(tr_set)
+            #print(tr_set)
             valid_labels = fold[["Class"]]
             valid_data = fold.drop(["Class"], axis=1)
-            valid_err_accumulator += self.calcError(valid_data, valid_labels,
+            valid_errors.append(self.calcError(valid_data, valid_labels,
                                                     parameters["hid_act_fun"], parameters["out_act_fun"],
-                                                    parameters["cost_fun"])
-        valid_err = valid_err_accumulator / k
-        print(f"Valid error:{valid_err} with par {parameters}")
-        return valid_err
+                                                    parameters["cost_fun"]))
+        valid_errors=np.array(valid_errors)
+        mean=valid_errors.mean()
+        var=valid_errors.var()
+        #print(f"Valid error:{mean}, Variance = {var}, with par {parameters}")
+        return mean, var
 
     def hold_out(self, data, parameters, randomize_shuffle=True):
         if "ID" in data.columns:

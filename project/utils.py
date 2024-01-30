@@ -5,6 +5,8 @@ from NeuralNetwork import *
 from matplotlib import pyplot as plt
 import itertools
 
+import TenMaxPriorityQueue as minQueue
+
 
 def get_search_space(grid):
     tuple_search_space = list(itertools.product(grid["eta"], grid["mb"], grid["momentum"], grid["n_layers"], grid["n_neurons"], grid["epochs"],
@@ -17,7 +19,7 @@ def get_search_space(grid):
     return dict_search_space
 
 
-def parallel_grid_search(k, data, search_space, n_inputs, n_outputs):
+def parallel_grid_search(k, data, search_space, n_inputs, n_outputs,refined=False,epochs_refinment=1000):
     cpus = cpu_count()
     if len(search_space) >= cpus:
         n_cores = cpus
@@ -28,7 +30,7 @@ def parallel_grid_search(k, data, search_space, n_inputs, n_outputs):
     processes = []
     manager = Manager()
     lock = Lock()
-    res = manager.list(["", 10**5])
+    res = manager.list([[(10000,(100,{}))]])
     for i in np.arange(n_cores):
         processes.append(Process(target=grid_search,
                                  args=(k, data, split_search_space[i], n_inputs,
@@ -39,16 +41,25 @@ def parallel_grid_search(k, data, search_space, n_inputs, n_outputs):
         process.join()
 
     print("GRID SEARCH FINISHED")
-    f = open("./results.txt", "w")
-    f.write(str(res))
-    f.close()
-    return res
+    if refined:
+        print("Results' refinment...")
+        search_space=[]
+        for elem in res[0]:
+            (err,(variance,parameters)) = elem
+            parameters["epochs"]=epochs_refinment
+            search_space.append(parameters)
+        parallel_grid_search(10,data,search_space,n_inputs,n_outputs)
+
+    else:
+        minQueue.printQueue(res[0])
+        f = open("./results.txt", "w")
+        minQueue.printQueue(res[0],file=f)
+        f.close()
+
 
 
 def grid_search(k, data, search_space, n_inputs, n_outputs, shared_res=None, lock=None):
-    min_err = 10 ** 5
-    val_errors = {}
-
+    best_comb = []
     for parameters in search_space:
         n_layers = parameters["n_layers"]
         n_neurons = parameters["n_neurons"]
@@ -59,28 +70,23 @@ def grid_search(k, data, search_space, n_inputs, n_outputs, shared_res=None, loc
             net.add_hidden_layer(n_neurons, n_neurons)
 
         net.add_output_layer(n_neurons, n_outputs)
-        err = net.k_fold(k, data, parameters)
-        # frozenset because dict is not hashable
-        # val_errors[frozenset(parameters.items())] = err
-
-        if err < min_err:
-            best_conf = parameters
-            min_err = err
+        err, variance = net.k_fold(k, data, parameters)
+        minQueue.push(best_comb,(err,(variance,parameters)))
 
     if shared_res is not None:
         lock.acquire()
-        if min_err < shared_res[1]:
-            shared_res[0] = best_conf
-            shared_res[1] = min_err
-            print(f"shared_res : {shared_res}, min err: {min_err}")
-        lock.release()
+        temp=shared_res[0]
+        for i in range(len(best_comb)):
+            minQueue.push(temp,best_comb[i])
 
-        return
+        shared_res[0]=temp
+        lock.release()
+        return best_comb
 
     else:
         print("GRID SEARCH FINISHED")
-        return (best_conf, min_err)
-
+        minQueue.printQueue(best_comb)
+        return 0
 
 def compare_models(n, data, parameters, n_inputs, n_outputs):
     nets_errors = []
