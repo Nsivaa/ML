@@ -227,7 +227,7 @@ class NeuralNetwork:
         Lambda dovrebbe esser moltiplicato per mb/n ma si evita in quanto il parametro sarò automaticamente selezionato nelle grid search
     '''
     #test_data != None => si calcola anche validation/test loss, outFun2 != None => si calcolano anche traing e test Error
-    def train(self, tr_data: pd.DataFrame, params, test_data=None, outFun2:str = None):
+    def train(self, tr_data: pd.DataFrame, params, test_data=None, outFun2: str = None, type = None):
         mb = params["mb"]
         epochs = params["epochs"]
         hid_act_fun = params["hid_act_fun"]
@@ -276,9 +276,16 @@ class NeuralNetwork:
                 end_pos = int(start_pos + mb)
                 if end_pos >= n:
                     end_pos = int(n)
-                labels = tr_data[["Class"]].iloc[start_pos:end_pos, :]
-                data = (tr_data.drop(["Class"], axis=1)
-                        ).iloc[start_pos:end_pos, :]
+                if type == "monk":
+                    labels = tr_data[["Class"]].iloc[start_pos:end_pos, :]
+                    data = (tr_data.drop(["Class"], axis=1)
+                            ).iloc[start_pos:end_pos, :]
+                else:
+                    labels = tr_data[['TARGET_x', 'TARGET_y',
+                                      'TARGET_z']].iloc[start_pos:end_pos, :]
+                    data = (tr_data.drop(
+                        ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)).iloc[start_pos:end_pos, :]
+
                 for row, label in zip(data.itertuples(index=False, name=None),
                                       labels.itertuples(index=False, name=None)):
                     # Forward propagation
@@ -298,23 +305,50 @@ class NeuralNetwork:
                     self.update_weights(mb, eta, momentum,
                                         ridge_lambda, lasso_lambda, clip_value)
 
-            #calcolo  degli error su test e fun2
-            labels = tr_data[["Class"]]
-            data = tr_data.drop(["Class"], axis=1)
-            train_errors.append(self.calcError(data, labels, hid_act_fun, out_act_fun, cost_fun))
+            # calcolo  degli error su test e fun2
+            if type == "monk":
+                labels = tr_data[["Class"]]
+                data = tr_data.drop(["Class"], axis=1)
+            else:
+                labels = tr_data[['TARGET_x', 'TARGET_y',
+                                  'TARGET_z']]
+                data = (tr_data.drop(
+                    ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1))
+            train_errors.append(self.calcError(
+                data, labels, hid_act_fun, out_act_fun, cost_fun))
+
 
             if outFun2 is not None:
-                fun2_train_err.append(self.calcError(data, labels, hid_act_fun, out_act_fun, outFun2))
-            if test_data is not None:
-                labels = test_data[["Class"]]
-                data = test_data.drop(["Class"], axis=1)
-                test_errors.append(self.calcError(data, labels, hid_act_fun, out_act_fun, cost_fun))
-                if outFun2 is not None:
-                    fun2_test_err.append(self.calcError(data, labels, hid_act_fun, out_act_fun, outFun2))
-
+                fun2_train_err.append(self.calcError(
+                    data, labels, hid_act_fun, out_act_fun, outFun2))
+                if test_data is not None:
+                    if type == "monk":
+                        labels = test_data[["Class"]]
+                        data = test_data.drop(["Class"], axis=1)
+                    else:
+                        labels = test_data[['TARGET_x', 'TARGET_y',
+                                          'TARGET_z']]
+                        data = test_data.drop(
+                            ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
+                    test_errors.append(self.calcError(
+                        data, labels, hid_act_fun, out_act_fun, cost_fun))
+                    fun2_test_err.append(self.calcError(
+                            data, labels, hid_act_fun, out_act_fun, outFun2))
+            elif test_data is not None:
+                if type == "monk":
+                    labels = tr_data[["Class"]]
+                    data = tr_data.drop(["Class"], axis=1)
+                else:
+                    labels = tr_data[['TARGET_x', 'TARGET_y',
+                                      'TARGET_z']]
+                    data = tr_data.drop(
+                        ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
+                test_errors.append(self.calcError(
+                    data, labels, hid_act_fun, out_act_fun, cost_fun))
 
             # end epoch
-            print("end Training")
+        #end training
+        print("end Training")
 
         if outFun2 is not None and test_data is not None:
             return test_errors, train_errors, fun2_test_err, fun2_train_err
