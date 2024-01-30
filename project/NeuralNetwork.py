@@ -177,27 +177,24 @@ class NeuralNetwork:
             # clippo il gradiente per evitare gradient explosion
             if clip_value:
                 layer.clip_gradients(clip_value)
-            if lasso_lambda is None:
+            if ridge_lambda is not None:
                 if momentum is None:
                     layer.weights += eta * \
                                      (layer.acc_weight_gradients / n) - \
                                      (2 * ridge_lambda * layer.weights)
                     layer.biases[0] += eta * (layer.acc_bias_gradients / n)
                 else:
-                    layer.weights += eta * \
-                                     (layer.acc_weight_gradients / n) + \
+                    deltaW=eta * (layer.acc_weight_gradients / n) + \
                                      layer.momentum_velocity_w * momentum - \
                                      (2 * ridge_lambda * layer.weights)
-                    layer.biases[0] += eta * (layer.acc_bias_gradients / n) + \
-                                       layer.momentum_velocity_b * momentum
+                    deltaB=eta * (layer.acc_bias_gradients / n) + \
+                                                layer.momentum_velocity_b * momentum
+                    layer.weights += deltaW
+                    layer.biases[0] += deltaB
 
                     # update velocities
-                    layer.momentum_velocity_w = eta * \
-                                                (layer.acc_weight_gradients / n) + \
-                                                layer.momentum_velocity_w * momentum
-                    layer.momentum_velocity_b = eta * \
-                                                (layer.acc_bias_gradients / n) + \
-                                                layer.momentum_velocity_b * momentum
+                    layer.momentum_velocity_w = deltaW
+                    layer.momentum_velocity_b = deltaB
             else:
                 # nella formula del gradiente con lasso regression si ha la derivata del valore assoluto dei pesi
                 # perciò la derivata, che si sommerà ad eta e al momentum nel calcolo del nuovo peso sarà:
@@ -209,19 +206,16 @@ class NeuralNetwork:
                                      (layer.acc_weight_gradients / n) + lasso_lambda_matrix
                     layer.biases[0] += eta * (layer.acc_bias_gradients / n)
                 else:
-                    layer.weights += eta * \
-                                     (layer.acc_weight_gradients / n) + \
+                    deltaW=eta * (layer.acc_weight_gradients / n) + \
                                      layer.momentum_velocity_w * momentum + lasso_lambda_matrix
-                    layer.biases[0] += eta * (layer.acc_bias_gradients / n) + \
-                                       layer.momentum_velocity_b * momentum
+                    deltaB=eta * (layer.acc_bias_gradients / n) + \
+                                                layer.momentum_velocity_b * momentum
+                    layer.weights += deltaW
+                    layer.biases[0] += deltaB
 
                     # update velocities
-                    layer.momentum_velocity_w = eta * \
-                                                (layer.acc_weight_gradients / n) + \
-                                                layer.momentum_velocity_w * momentum
-                    layer.momentum_velocity_b = eta * \
-                                                (layer.acc_bias_gradients / n) + \
-                                                layer.momentum_velocity_b * momentum
+                    layer.momentum_velocity_w = deltaW
+                    layer.momentum_velocity_b = deltaB
 
     # n_mb -> minibatch size
     # TODO: il parametro di regolarizzazione si è scelto di non considerarlo nell'aggiornamento della velocità del momentum così da mantenerlo indipendente da eta e alpha (momentum)
