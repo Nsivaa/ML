@@ -19,7 +19,7 @@ def get_search_space(grid):
     return dict_search_space
 
 
-def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs,refined=False,epochs_refinment=1000):
+def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs,refined=False,epochs_refinment=1000,type="monk"):
     cpus = cpu_count()
     if len(search_space) >= cpus:
         n_cores = cpus
@@ -34,7 +34,7 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs,refi
     for i in np.arange(n_cores):
         processes.append(Process(target=grid_search,
                                  args=(k, data,es_data, split_search_space[i], n_inputs,
-                                       n_outputs, res, lock)))
+                                       n_outputs, res, lock,type)))
         processes[i].start()
 
     for process in processes:
@@ -58,13 +58,13 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs,refi
 
 
 #Si suppone se sia eseguita solo su CUP, sempre con ES
-def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=None, lock=None):
+def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=None, lock=None,type="monk"):
     #minqueue usata per tenere traccia delle 10 migliori combinazioni
     best_comb = []
     for parameters in search_space:
         n_layers = parameters["n_layers"]
         n_neurons = parameters["n_neurons"]
-        net = NeuralNetwork()
+        net = NeuralNetwork(type=type)
         net.add_input_layer(n_inputs)
         net.add_hidden_layer(n_inputs, n_neurons)
         for _ in np.arange(n_layers - 1):
