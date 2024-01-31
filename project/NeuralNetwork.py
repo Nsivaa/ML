@@ -373,7 +373,7 @@ class NeuralNetwork:
 
             # end epoch
         # end training
-        print("end Training")
+        #print("end Training")
         if es_data is not None and test_data is not None:
             return min_trError, min_testError
 
