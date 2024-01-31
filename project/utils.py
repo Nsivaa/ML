@@ -30,7 +30,7 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs,refi
     processes = []
     manager = Manager()
     lock = Lock()
-    res = manager.list([[(1000000,(100,100,{}))]])
+    res = manager.list([[(-1000000,(100,100,{}))]])
     for i in np.arange(n_cores):
         processes.append(Process(target=grid_search,
                                  args=(k, data,es_data, split_search_space[i], n_inputs,
