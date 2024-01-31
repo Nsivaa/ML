@@ -10,7 +10,7 @@ class Layer:
         The input layer is modelled as a layer with 1 input and n neurons so its weights are a single row and are actually the input values
     '''
 
-    def __init__(self, n_inputs: int = 0, n_neurons: int = 0, is_input: bool = False, randomize_weights: bool = False):
+    def __init__(self, n_inputs: int = 0, n_neurons: int = 0, is_input: bool = False, randomize_weights: bool = False,type="monk"):
         self.is_input = is_input
         self.n_input = n_inputs
         self.n_neurons = n_neurons
@@ -19,6 +19,7 @@ class Layer:
         self.bias_gradients = None
         self.weight_gradients = None
         self.output = np.zeros(n_neurons)
+        self.type = type
 
         if self.is_input:
             self.weights = np.zeros(n_neurons)
@@ -30,8 +31,14 @@ class Layer:
                 np.random.seed()
             # xavier normalization for weight inizialization
             shape = self.weights.shape
-            self.weights = np.random.randn(
-                *shape) * np.sqrt(2.0 / (shape[0] + shape[1]))
+            if self.type == "monk":
+                self.weights = np.random.randn(
+                    *shape) * np.sqrt(2.0 / (shape[0] + shape[1]))
+            else:
+                # he inizializzation
+                self.weights = np.random.randn(
+                    shape[0]) * np.sqrt(2.0 / shape[0])
+
 
             self.momentum_velocity_w = np.zeros(
                 (self.weights.shape[0], self.weights.shape[1]))

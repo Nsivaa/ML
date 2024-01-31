@@ -4,12 +4,6 @@ from math_utils import *
 from Layer import *
 
 
-# TODO: cambiare bias in bias[0](in modo da avere un vettore e non una matrice con una riga) e modificare tutto di conseguenza
-
-
-# TODO: CAMBIARE ACTIVATION FUNCTION OUTPUT LAYER CLASSIFICAZIONE
-
-
 class NeuralNetwork:
     '''
         NeuralNetwork class contains:
@@ -18,8 +12,9 @@ class NeuralNetwork:
         output_layer: Layer object
     '''
 
-    def __init__(self, input_layer: Layer = None, hidden_layers: list = None, output_layer: Layer = None):
+    def __init__(self, input_layer: Layer = None, hidden_layers: list = None, output_layer: Layer = None,type="monk"):
 
+        self.type=type
         self.input_layer = input_layer
         self.hidden_layers = hidden_layers
 
@@ -31,7 +26,7 @@ class NeuralNetwork:
 
     def add_input_layer(self, n_neurons: int = 0, randomize_weights=True):
         self.input_layer = Layer(
-            n_inputs=1, n_neurons=n_neurons, is_input=True, randomize_weights=randomize_weights)
+            n_inputs=1, n_neurons=n_neurons, is_input=True, randomize_weights=randomize_weights,type=self.type)
         return
 
     ''' 
@@ -41,7 +36,7 @@ class NeuralNetwork:
 
     def add_hidden_layer(self, n_inputs: int = 0, n_neurons: int = 0, pos: int = -1, randomize_weights=True):
         layer = Layer(n_inputs, n_neurons, is_input=False,
-                      randomize_weights=randomize_weights)
+                      randomize_weights=randomize_weights,type=self.type)
         if pos == -1:
             self.hidden_layers.append(layer)
 
@@ -51,7 +46,7 @@ class NeuralNetwork:
 
     def add_output_layer(self, n_inputs: int = 0, n_neurons: int = 0, randomize_weights=True):
         self.output_layer = Layer(
-            n_inputs, n_neurons, is_input=False, randomize_weights=randomize_weights)
+            n_inputs, n_neurons, is_input=False, randomize_weights=randomize_weights,type=self.type)
 
         return
 
