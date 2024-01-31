@@ -102,8 +102,7 @@ class NeuralNetwork:
             Per MSE delta_i = (d_i - o_i) * f'(net(i)) 
             Per Cross-Entropy delta_i = [(d_i - o_i)/(o_i - o_i^2)] * f'(net(i)) ma f' = (o_i - o_i^2) => delta = (d_i - o_i)
             '''
-            net = np.dot(self.hidden_layers[-1].output, self.output_layer.weights[:, i]) + self.output_layer.biases[0][
-                i]
+            net = np.dot(self.hidden_layers[-1].output, self.output_layer.weights[:, i]) + self.output_layer.biases[0][i]
             delta = (label[i] - self.output_layer.output[i]) * derivative(activationFunc, net)
             self.output_layer.bias_gradients[i] = delta
             # gradiente_w_j,i = bias_i * o_j
@@ -226,8 +225,9 @@ class NeuralNetwork:
         il termine di regolarizzazaione sarà solo aggiunto nel weight update. 
         Lambda dovrebbe esser moltiplicato per mb/n ma si evita in quanto il parametro sarò automaticamente selezionato nelle grid search
     '''
+    #l'esecuzione attesa di train con ES implica la restituzione di due soli valori (da utilizzare er retrain senza ES), anzichè di 1 o 2 o 4 liste di errori (da utilizzare per il plot)
     #test_data != None => si calcola anche validation/test loss, outFun2 != None => si calcolano anche traing e test Error
-    def train(self, tr_data: pd.DataFrame, params, test_data=None, outFun2: str = None, type = None):
+    def train(self, tr_data: pd.DataFrame, params, test_data=None, outFun2: str = None, type = None,es_data=None):
         mb = params["mb"]
         epochs = params["epochs"]
         hid_act_fun = params["hid_act_fun"]
@@ -260,7 +260,17 @@ class NeuralNetwork:
             test_errors = []
             if outFun2 is not None:
                 fun2_test_err = []
+        if es_data is not None:
+            es_label_ = es_data[['TARGET_x', 'TARGET_y','TARGET_z']]
+            es_data_ = es_data.drop(['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
+            min_esError=10000
+            min_trError=10000
+            min_testError=10000
+            es_patience=params["es_patience"]
+            epochsCounter=1
+            #se usaimo ES, continua ad iterare finchè
 
+        #TODO: stabilire se far continuare all'inifito o finche non overfitta nel caso in cui si attiva ES'
         for epoch in np.arange(1, epochs + 1):
             # shuffle dataframe before each epoch
             np.random.seed()
@@ -317,7 +327,7 @@ class NeuralNetwork:
             train_errors.append(self.calcError(
                 data, labels, hid_act_fun, out_act_fun, cost_fun))
 
-
+            #Early stopping non va applicato anche su fun2
             if outFun2 is not None:
                 fun2_train_err.append(self.calcError(
                     data, labels, hid_act_fun, out_act_fun, outFun2))
@@ -336,19 +346,37 @@ class NeuralNetwork:
                             data, labels, hid_act_fun, out_act_fun, outFun2))
             elif test_data is not None:
                 if type == "monk":
-                    labels = tr_data[["Class"]]
-                    data = tr_data.drop(["Class"], axis=1)
+                    labels = test_data[["Class"]]
+                    data = test_data.drop(["Class"], axis=1)
                 else:
-                    labels = tr_data[['TARGET_x', 'TARGET_y',
+                    labels = test_data[['TARGET_x', 'TARGET_y',
                                       'TARGET_z']]
-                    data = tr_data.drop(
+                    data = test_data.drop(
                         ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
                 test_errors.append(self.calcError(
                     data, labels, hid_act_fun, out_act_fun, cost_fun))
 
+            if es_data is not None and test_data is not None:
+                esError= self.calcError(
+                            es_data_, es_label_, hid_act_fun, out_act_fun, cost_fun)
+                if esError > min_esError:
+                    if epochsCounter > es_patience:
+                        #Stop training
+                        return min_trError, min_testError
+                    else:
+                        epochsCounter+=1
+                if esError < min_esError:
+                    min_esError=esError
+                    min_trError=train_errors[-1]
+                    min_testError = test_errors[-1]
+                    epochsCounter=1
+
             # end epoch
         #end training
         print("end Training")
+        if es_data is not None and test_data is not None:
+            return min_trError, min_testError
+
 
         if outFun2 is not None and test_data is not None:
             return test_errors, train_errors, fun2_test_err, fun2_train_err
@@ -358,8 +386,8 @@ class NeuralNetwork:
             return train_errors, fun2_train_err
 
         return train_errors
-
-    def k_fold(self, k, data, parameters):
+    #si suppone che la k-fold sia solo usata nella grid, che è solo usata in Cup con ES
+    def k_fold(self, k, data, parameters,es_data):
         '''
         theta is the parameter we are performing the search on 
         parameters is the list of all other parameters
@@ -371,21 +399,21 @@ class NeuralNetwork:
         data = data.sample(frac=1)
         folds = np.array_split(data, k)
         valid_errors=[]
+        tr_errors=[]
         for fold in folds:
             tr_set = pd.concat(
                 [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
-            self.train(tr_set, parameters)
+            tr_error, valid_error= self.train(tr_set, parameters,test_data=fold,es_data=es_data)
             #print(tr_set)
-            valid_labels = fold[["Class"]]
-            valid_data = fold.drop(["Class"], axis=1)
-            valid_errors.append(self.calcError(valid_data, valid_labels,
-                                                    parameters["hid_act_fun"], parameters["out_act_fun"],
-                                                    parameters["cost_fun"]))
+            valid_errors.append(valid_error)
+            tr_errors.append(tr_error)
         valid_errors=np.array(valid_errors)
-        mean=valid_errors.mean()
-        var=valid_errors.var()
+        tr_errors= np.array(tr_errors)
+        valid_mean=valid_errors.mean()
+        tr_mean = tr_errors.mean()
+        valid_var=valid_errors.var()
         #print(f"Valid error:{mean}, Variance = {var}, with par {parameters}")
-        return mean, var
+        return tr_mean,valid_mean, valid_var
 
     def hold_out(self, data, parameters, randomize_shuffle=True):
         if "ID" in data.columns:

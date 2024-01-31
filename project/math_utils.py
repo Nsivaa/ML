@@ -63,7 +63,7 @@ def derivative(act_fun: str, arr: np.ndarray):
     elif act_fun == "tanh":
         return D_tanh(arr)
     elif act_fun == "linear":
-        return arr
+        return 1
     else:
         print("Invalid activation function")
         return None
@@ -86,6 +86,12 @@ def mse(netOut: np.ndarray, sampleOut: np.ndarray):
         s += np.square(netOut[i] - sampleOut[i]) 
     return 0.5 * s
 
+def eucl(netOut, sampleOut):
+    s = 0
+    for i in np.arange(0, netOut.size):
+        s += np.square(netOut[i] - sampleOut[i])
+
+    return np.sqrt(s)
 #retituisce 1 per match, 0 else
 def accuracy(netOut, sampleOut):
     if netOut >= 0.5:
