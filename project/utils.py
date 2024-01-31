@@ -115,21 +115,27 @@ def compare_models(n, data, parameters, n_inputs, n_outputs):
     return best_net, variance, bias
 
 
-def plot_loss(losses: np.ndarray, cost_fun: str,test_losses=None):
+def plot_loss_Cup(losses: np.ndarray, cost_fun: str,ax,test_losses=None):
     iterations = np.arange(len(losses))
-    plt.title("Learning Curve")
-    plt.xlabel("Epochs")
+    ax.set_xlabel("Epochs")
     if cost_fun == "mse":
-        plt.ylabel("MSE Loss")
-    elif cost_fun == "b_ce":
-        plt.ylabel("Cross Entropy Loss")
+        ax.set_ylabel("MSE Loss")
+        ax.set_title("Learning Curve")
+        label1="training loss"
+        label2="test loss"
+    else:
+        ax.set_ylabel("MEE Error")
+        ax.set_title("Learning Curve")
+        label1 = "training error"
+        label2 = "test error"
 
-    plt.plot(iterations, losses, color="green")
+    loss= ax.plot(iterations, losses, color="black", label = label1)
     if test_losses is not None:
         iterations = np.arange(len(test_losses))
-        plt.plot(iterations, test_losses, color="black")
-    plt.legend()
-    plt.show
+        test=ax.plot(iterations, test_losses, color="red",linestyle='--',label= label2)
+    ax.legend()
+
+
     
 def plot_loss_Monk(losses: np.ndarray, cost_fun: str,ax,test_losses=None):
     iterations = np.arange(len(losses))
@@ -139,16 +145,12 @@ def plot_loss_Monk(losses: np.ndarray, cost_fun: str,ax,test_losses=None):
         ax.set_title("Learning Curve")
         label1="training loss"
         label2="test loss"
-    elif cost_fun == "acc":
+    else:
         ax.set_ylabel("Accuracy")
         ax.set_title("Learning Curve")
         label1 = "training accuracy"
         label2 = "test accuracy"
-    elif cost_fun == "eucl":
-        ax.set_ylabel("Euclidian Error")
-        ax.set_title("Learning Curve")
-        label1 = "training error"
-        label2 = "test error"
+
 
     loss= ax.plot(iterations, losses, color="black", label = label1)
     if test_losses is not None:
