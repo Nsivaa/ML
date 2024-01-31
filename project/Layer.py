@@ -1,7 +1,7 @@
 import numpy as np
 from math_utils import activation
 
- 
+
 class Layer:
     '''
         The Layer class represents a layer of the neural network.
@@ -10,7 +10,8 @@ class Layer:
         The input layer is modelled as a layer with 1 input and n neurons so its weights are a single row and are actually the input values
     '''
 
-    def __init__(self, n_inputs: int = 0, n_neurons: int = 0, is_input: bool = False, randomize_weights: bool = False,type="monk"):
+    def __init__(self, n_inputs: int = 0, n_neurons: int = 0, is_input: bool = False, randomize_weights: bool = False,
+                 type="monk"):
         self.is_input = is_input
         self.n_input = n_inputs
         self.n_neurons = n_neurons
@@ -24,7 +25,7 @@ class Layer:
         if self.is_input:
             self.weights = np.zeros(n_neurons)
         else:
-            self.weights=np.zeros((n_inputs,n_neurons))
+            self.weights = np.zeros((n_inputs, n_neurons))
             if not randomize_weights:
                 np.random.seed(0)
             else:
@@ -37,8 +38,7 @@ class Layer:
             else:
                 # he inizializzation
                 self.weights = np.random.randn(
-                    shape[0]) * np.sqrt(2.0 / shape[0])
-
+                    *shape) * np.sqrt(2.0 / shape[0])
 
             self.momentum_velocity_w = np.zeros(
                 (self.weights.shape[0], self.weights.shape[1]))

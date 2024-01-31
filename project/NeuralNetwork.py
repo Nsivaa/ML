@@ -46,7 +46,7 @@ class NeuralNetwork:
 
     def add_output_layer(self, n_inputs: int = 0, n_neurons: int = 0, randomize_weights=True):
         self.output_layer = Layer(
-            n_inputs, n_neurons, is_input=False, randomize_weights=randomize_weights,type=self.type)
+            n_inputs, n_neurons, is_input=False, randomize_weights=randomize_weights)
 
         return
 
