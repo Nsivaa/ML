@@ -102,3 +102,10 @@ def accuracy(netOut, sampleOut):
     if netOut == sampleOut:
         return 1
     return 0
+
+def eucl(netOut, sampleOut):
+    s = 0
+    for i in np.arange(0, netOut.size):
+        s += np.square(netOut[i] - sampleOut[i]) 
+
+    return np.sqrt(s)

@@ -40,7 +40,8 @@ class NeuralNetwork:
     '''
 
     def add_hidden_layer(self, n_inputs: int = 0, n_neurons: int = 0, pos: int = -1, randomize_weights=True):
-        layer = Layer(n_inputs, n_neurons, is_input=False, randomize_weights=randomize_weights)
+        layer = Layer(n_inputs, n_neurons, is_input=False,
+                      randomize_weights=randomize_weights)
         if pos == -1:
             self.hidden_layers.append(layer)
 
@@ -49,7 +50,8 @@ class NeuralNetwork:
         return
 
     def add_output_layer(self, n_inputs: int = 0, n_neurons: int = 0, randomize_weights=True):
-        self.output_layer = Layer(n_inputs, n_neurons, is_input=False, randomize_weights=randomize_weights)
+        self.output_layer = Layer(
+            n_inputs, n_neurons, is_input=False, randomize_weights=randomize_weights)
 
         return
 
@@ -85,6 +87,8 @@ class NeuralNetwork:
             return bin_cross_entropy(self.output_layer.output, np.array(label))
         elif cost_fun == "accuracy":
             return accuracy(self.output_layer.output, np.array(label))
+        elif cost_fun == "eucl":
+            return eucl(self.output_layer.output, np.array(label))
         else:
             return None
 
@@ -107,7 +111,7 @@ class NeuralNetwork:
             self.output_layer.bias_gradients[i] = delta
             # gradiente_w_j,i = bias_i * o_j
             self.output_layer.weight_gradients[:,
-            i] = delta * self.hidden_layers[-1].output
+                                               i] = delta * self.hidden_layers[-1].output
 
         self.output_layer.acc_bias_gradients += self.output_layer.bias_gradients
         self.output_layer.acc_weight_gradients += self.output_layer.weight_gradients
@@ -134,11 +138,11 @@ class NeuralNetwork:
                 sum = 0
                 for k in np.arange(0, next_layer.n_neurons):
                     sum += next_layer.bias_gradients[k] * \
-                           next_layer.weights[i][k]
+                        next_layer.weights[i][k]
 
                 delta = sum * \
-                        derivative(act_fun, (np.dot(prec_layer.output,
-                                                    layer.weights[:, i]) + layer.biases[0][i]))
+                    derivative(act_fun, (np.dot(prec_layer.output,
+                                                layer.weights[:, i]) + layer.biases[0][i]))
                 layer.bias_gradients[i] = delta
                 # gradiente_w_j,i = bias_i * o_j
                 layer.weight_gradients[:, i] = delta * prec_layer.output
@@ -164,7 +168,8 @@ class NeuralNetwork:
 
         if decay_max_steps is not None:
             decay_alpha = step / decay_max_steps
-            eta = eta0 * (1 - decay_alpha) + (decay_alpha * eta0 / decay_min_value)
+            eta = eta0 * (1 - decay_alpha) + \
+                (decay_alpha * eta0 / decay_min_value)
         if lasso_lambda is None and ridge_lambda is None:
             ridge_lambda = 0
         for layer in np.arange(len(self.hidden_layers), -1, -1) - 1:
@@ -179,15 +184,15 @@ class NeuralNetwork:
             if ridge_lambda is not None:
                 if momentum is None:
                     layer.weights += eta * \
-                                     (layer.acc_weight_gradients / n) - \
-                                     (2 * ridge_lambda * layer.weights)
+                        (layer.acc_weight_gradients / n) - \
+                        (2 * ridge_lambda * layer.weights)
                     layer.biases[0] += eta * (layer.acc_bias_gradients / n)
                 else:
-                    deltaW=eta * (layer.acc_weight_gradients / n) + \
-                                     layer.momentum_velocity_w * momentum - \
-                                     (2 * ridge_lambda * layer.weights)
-                    deltaB=eta * (layer.acc_bias_gradients / n) + \
-                                                layer.momentum_velocity_b * momentum
+                    deltaW = eta * (layer.acc_weight_gradients / n) + \
+                        layer.momentum_velocity_w * momentum - \
+                        (2 * ridge_lambda * layer.weights)
+                    deltaB = eta * (layer.acc_bias_gradients / n) + \
+                        layer.momentum_velocity_b * momentum
                     layer.weights += deltaW
                     layer.biases[0] += deltaB
 
@@ -202,13 +207,13 @@ class NeuralNetwork:
                     layer.weights >= 0, -1, 1)
                 if momentum is None:
                     layer.weights += eta * \
-                                     (layer.acc_weight_gradients / n) + lasso_lambda_matrix
+                        (layer.acc_weight_gradients / n) + lasso_lambda_matrix
                     layer.biases[0] += eta * (layer.acc_bias_gradients / n)
                 else:
-                    deltaW=eta * (layer.acc_weight_gradients / n) + \
-                                     layer.momentum_velocity_w * momentum + lasso_lambda_matrix
-                    deltaB=eta * (layer.acc_bias_gradients / n) + \
-                                                layer.momentum_velocity_b * momentum
+                    deltaW = eta * (layer.acc_weight_gradients / n) + \
+                        layer.momentum_velocity_w * momentum + lasso_lambda_matrix
+                    deltaB = eta * (layer.acc_bias_gradients / n) + \
+                        layer.momentum_velocity_b * momentum
                     layer.weights += deltaW
                     layer.biases[0] += deltaB
 
@@ -337,13 +342,13 @@ class NeuralNetwork:
                         data = test_data.drop(["Class"], axis=1)
                     else:
                         labels = test_data[['TARGET_x', 'TARGET_y',
-                                          'TARGET_z']]
+                                            'TARGET_z']]
                         data = test_data.drop(
                             ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
                     test_errors.append(self.calcError(
                         data, labels, hid_act_fun, out_act_fun, cost_fun))
                     fun2_test_err.append(self.calcError(
-                            data, labels, hid_act_fun, out_act_fun, outFun2))
+                        data, labels, hid_act_fun, out_act_fun, outFun2))
             elif test_data is not None:
                 if type == "monk":
                     labels = test_data[["Class"]]
@@ -372,7 +377,7 @@ class NeuralNetwork:
                     epochsCounter=1
 
             # end epoch
-        #end training
+        # end training
         print("end Training")
         if es_data is not None and test_data is not None:
             return min_trError, min_testError

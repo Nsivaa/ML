@@ -140,10 +140,15 @@ def plot_loss_Monk(losses: np.ndarray, cost_fun: str,ax,test_losses=None):
         label1="training loss"
         label2="test loss"
     elif cost_fun == "acc":
-        ax.set_title("Learning Curve")
         ax.set_ylabel("Accuracy")
-        label1="training accuracy"
-        label2="test accuracy"
+        ax.set_title("Learning Curve")
+        label1 = "training accuracy"
+        label2 = "test accuracy"
+    elif cost_fun == "eucl":
+        ax.set_ylabel("Euclidian Error")
+        ax.set_title("Learning Curve")
+        label1 = "training error"
+        label2 = "test error"
 
     loss= ax.plot(iterations, losses, color="black", label = label1)
     if test_losses is not None:
