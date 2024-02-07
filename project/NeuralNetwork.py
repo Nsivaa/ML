@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from math_utils import *
 from Layer import *
+import time
 
 
 class NeuralNetwork:
@@ -51,19 +52,20 @@ class NeuralNetwork:
         return
 
     def calcError(self, data: pd.DataFrame, labels: pd.DataFrame,
-                  hid_act_fun: str = None, out_act_fun: str = None, cost_fun: str = None):
+                  hid_act_fun: str = None, out_act_fun: str = None, cost_fun: list[str] = None):
         # calcola l'errore sul dataset con i pesi e i bias correnti
 
-        totErr = 0
+        totErr = [0.0 for _ in range(len(cost_fun))]
         for row, label in zip(data.itertuples(index=False, name=None), labels.itertuples(index=False, name=None)):
-            totErr += self.forwardPropagation(row, label, hid_act_fun,
-                                              out_act_fun, cost_fun)
+            totErr= np.add(totErr, self.forwardPropagation(row, label, hid_act_fun,
+                                              out_act_fun, cost_fun))
         if (data.shape[0]) != 0:
-            totErr /= data.shape[0]
-
+            totErr=np.divide(totErr,data.shape[0])
+        if len(totErr) == 1:
+            [totErr]=totErr
         return totErr
 
-    def forwardPropagation(self, row: tuple, label: tuple, hid_act_fun: str, out_act_fun: str, cost_fun: str):
+    def forwardPropagation(self, row: tuple, label: tuple, hid_act_fun: str, out_act_fun: str, cost_fun: list[str]):
         # restituisce il risultato della loss function calcolato per i pesi correnti e l'input (row,label)
 
         self.input_layer.output = np.asarray(row)
@@ -75,17 +77,18 @@ class NeuralNetwork:
 
         self.output_layer.feed_forward(
             self.hidden_layers[-1].output, act_fun=out_act_fun)
+        err=[]
+        for i in range(len(cost_fun)):
+            if cost_fun[i] == "mse":
+                err.append(mse(self.output_layer.output, np.array(label)))
+            elif cost_fun[i] == "accuracy":
+                err.append(accuracy(self.output_layer.output, np.array(label)))
+            elif cost_fun[i] == "eucl":
+                err.append(eucl(self.output_layer.output, np.array(label)))
+            else:
+                return None
 
-        if cost_fun == "mse":
-            return mse(self.output_layer.output, np.array(label))
-        elif cost_fun == "b_ce":
-            return bin_cross_entropy(self.output_layer.output, np.array(label))
-        elif cost_fun == "accuracy":
-            return accuracy(self.output_layer.output, np.array(label))
-        elif cost_fun == "eucl":
-            return eucl(self.output_layer.output, np.array(label))
-        else:
-            return None
+        return err
 
     def outLayerBackpropagation(self, label, activationFunc):
         # output layer
@@ -112,7 +115,9 @@ class NeuralNetwork:
         self.output_layer.acc_weight_gradients += self.output_layer.weight_gradients
 
     def hiddenLayerBackpropagation(self, act_fun: str):
+        tot=0
         for layer in np.arange(len(self.hidden_layers), 0, -1) - 1:
+
             if layer == len(self.hidden_layers) - 1:
                 # ultimo hidden layer
                 next_layer = self.output_layer
@@ -122,28 +127,24 @@ class NeuralNetwork:
                 prec_layer = self.input_layer
             else:
                 prec_layer = self.hidden_layers[layer - 1]
+
             layer = self.hidden_layers[layer]
             layer.bias_gradients = np.zeros(layer.n_neurons)
             layer.weight_gradients = np.zeros((layer.n_input, layer.n_neurons))
             # per ogni neurone del layer calcolo delta, gradiente dei pesi e gradiente del bias
             # considero delta del neurone il corrispettivo valore del gradiente (sono lo stesso valore)
-            for i in np.arange(0, layer.n_neurons):
-                # i è l'i-esimo neurone del layer
-                # delta_i = (sommatoria(per tutti i neuroni k del layer successivo)(delta_k * w_i,k)* D(net(i))
-                sum = 0
-                for k in np.arange(0, next_layer.n_neurons):
-                    sum += next_layer.bias_gradients[k] * \
-                        next_layer.weights[i][k]
 
-                delta = sum * \
-                    derivative(act_fun, (np.dot(prec_layer.output,
-                                                layer.weights[:, i]) + layer.biases[0][i]))
-                layer.bias_gradients[i] = delta
-                # gradiente_w_j,i = bias_i * o_j
-                layer.weight_gradients[:, i] = delta * prec_layer.output
+            layer.bias_gradients= np.dot(next_layer.bias_gradients,next_layer.weights.T)*derivative(act_fun, (np.dot(prec_layer.output,
+                                                layer.weights) + layer.biases[0]))
 
+            layer.weight_gradients = np.dot( prec_layer.output.reshape((len(prec_layer.output),1)),
+                                            layer.bias_gradients.reshape((1,len(layer.bias_gradients))))
+            
             layer.acc_bias_gradients += layer.bias_gradients
             layer.acc_weight_gradients += layer.weight_gradients
+
+
+        return tot
 
     # tengo due versioni di una matrice di gradienti per i pesi ed un vettore di gradienti per i bias
     # una versione è riservata ad i calcoli relativi ad uno specifico smple, mentre la versione "acc_" serve per il calolo del gradiente tenendo conto di tutti i samples
@@ -263,24 +264,33 @@ class NeuralNetwork:
         if es_data is not None:
             es_label_ = es_data[['TARGET_x', 'TARGET_y','TARGET_z']]
             es_data_ = es_data.drop(['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
-            min_esError=10000
-            min_trError=10000
-            min_testError=10000
+            min_esError=100000
+            min_trError=0
+            min_testError=0
             es_patience=params["es_patience"]
             epochsCounter=1
-            #se usaimo ES, continua ad iterare finchè
+            # se usaimo ES, continua ad iterare finchè
+
+        forward=[]
+        backpropout=[]
+        backprophid=[]
+        update=[]
+        zero=[]
+
 
         #TODO: stabilire se far continuare all'inifito o finche non overfitta nel caso in cui si attiva ES'
         for epoch in np.arange(1, epochs + 1):
             # shuffle dataframe before each epoch
-            np.random.seed()
+            # np.random.seed()
             tr_data = tr_data.sample(frac=1)
             if linear_decay and decay_step < decay_max_steps:
                 decay_step += 1
 
             for step in np.arange(0, n / mb):
                 # tra uno step e l'altro azzero gli accumulatori dei gradienti per ogni layer
+                temp=time.time()
                 self.reset_accumulators()
+                zero.append((time.time()-temp))
                 # preparazione mb_Dataframe
                 start_pos = int(step * mb)
                 end_pos = int(start_pos + mb)
@@ -299,12 +309,18 @@ class NeuralNetwork:
                 for row, label in zip(data.itertuples(index=False, name=None),
                                       labels.itertuples(index=False, name=None)):
                     # Forward propagation
+                    temp=time.time()
                     self.forwardPropagation(
                         row, label, hid_act_fun, out_act_fun, cost_fun)
+                    forward.append(time.time()-temp)
+
                     # backPropagation
+                    temp=time.time()
                     self.outLayerBackpropagation(label, out_act_fun)
+                    backpropout.append(time.time()-temp)
                     # hidden layers
-                    self.hiddenLayerBackpropagation(hid_act_fun)
+                    temp=self.hiddenLayerBackpropagation(hid_act_fun)
+                    backprophid.append(temp)
 
                 # aggiornamento dei pesi
                 if linear_decay:
@@ -312,10 +328,13 @@ class NeuralNetwork:
                                         eta0=eta0, decay_max_steps=decay_max_steps, step=decay_step,
                                         decay_min_value=decay_min_value)
                 else:
+                    temp=time.time()
                     self.update_weights(mb, eta, momentum,
                                         ridge_lambda, lasso_lambda, clip_value)
+                    update.append(time.time()-temp)
 
-            # calcolo  degli error su test e fun2
+
+            # calcolo  degli error su test e fun2 a fine epoca
             if type == "monk":
                 labels = tr_data[["Class"]]
                 data = tr_data.drop(["Class"], axis=1)
@@ -324,13 +343,13 @@ class NeuralNetwork:
                                   'TARGET_z']]
                 data = (tr_data.drop(
                     ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1))
-            train_errors.append(self.calcError(
-                data, labels, hid_act_fun, out_act_fun, cost_fun))
+
 
             #Early stopping non va applicato anche su fun2
             if outFun2 is not None:
-                fun2_train_err.append(self.calcError(
-                    data, labels, hid_act_fun, out_act_fun, outFun2))
+                [err1,err2] = self.calcError(data, labels, hid_act_fun, out_act_fun, [cost_fun,outFun2])
+                train_errors.append(err1)
+                fun2_train_err.append(err2)
                 if test_data is not None:
                     if type == "monk":
                         labels = test_data[["Class"]]
@@ -340,25 +359,26 @@ class NeuralNetwork:
                                             'TARGET_z']]
                         data = test_data.drop(
                             ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
+                    [err1,err2] = self.calcError(data, labels, hid_act_fun, out_act_fun, [cost_fun,outFun2])
+                    test_errors.append(err1)
+                    fun2_test_err.append(err2)
+            else:
+                train_errors.append(self.calcError(data, labels, hid_act_fun, out_act_fun, [cost_fun]))
+                if test_data is not None:
+                    if type == "monk":
+                        labels = test_data[["Class"]]
+                        data = test_data.drop(["Class"], axis=1)
+                    else:
+                        labels = test_data[['TARGET_x', 'TARGET_y',
+                                          'TARGET_z']]
+                        data = test_data.drop(
+                            ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
                     test_errors.append(self.calcError(
-                        data, labels, hid_act_fun, out_act_fun, cost_fun))
-                    fun2_test_err.append(self.calcError(
-                        data, labels, hid_act_fun, out_act_fun, outFun2))
-            elif test_data is not None:
-                if type == "monk":
-                    labels = test_data[["Class"]]
-                    data = test_data.drop(["Class"], axis=1)
-                else:
-                    labels = test_data[['TARGET_x', 'TARGET_y',
-                                      'TARGET_z']]
-                    data = test_data.drop(
-                        ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
-                test_errors.append(self.calcError(
-                    data, labels, hid_act_fun, out_act_fun, cost_fun))
+                        data, labels, hid_act_fun, out_act_fun, [cost_fun]))
 
             if es_data is not None and test_data is not None:
                 esError= self.calcError(
-                            es_data_, es_label_, hid_act_fun, out_act_fun, cost_fun)
+                            es_data_, es_label_, hid_act_fun, out_act_fun, [cost_fun])
                 if esError > min_esError:
                     if epochsCounter > es_patience:
                         #Stop training
@@ -374,6 +394,8 @@ class NeuralNetwork:
             # end epoch
         # end training
         #print("end Training")
+
+
         if es_data is not None and test_data is not None:
             return min_trError, min_testError
 
@@ -415,27 +437,6 @@ class NeuralNetwork:
         #print(f"Valid error:{mean}, Variance = {var}, with par {parameters}")
         return tr_mean,valid_mean, valid_var
 
-    def hold_out(self, data, parameters, randomize_shuffle=True):
-        if "ID" in data.columns:
-            data.drop(["ID"], axis=1, inplace=True)
-        if randomize_shuffle:
-            np.random.seed()
-        else:
-            np.random.seed(0)
-
-        data = data.sample(frac=1)
-        folds = np.array_split(data, 5)
-
-        tr_set = pd.concat(folds[1:], axis=0)
-        test_set = folds[-1]
-        self.train(tr_set, parameters)
-        valid_labels = test_set[["Class"]]
-        valid_data = test_set.drop(["Class"], axis=1)
-        valid_err = self.calcError(valid_data, valid_labels,
-                                   parameters["hid_act_fun"], parameters["out_act_fun"],
-                                   parameters["cost_fun"])
-        print(f"Valid error:{valid_err} with par {parameters}")
-        return valid_err
 
     def __len__(self):
         '''Return the number of layers of the network'''

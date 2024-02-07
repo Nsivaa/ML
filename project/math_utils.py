@@ -69,29 +69,13 @@ def derivative(act_fun: str, arr: np.ndarray):
         return None
 
 
-def bin_cross_entropy(netOut: float, sampleOut: int):
-    '''
-     netOut is the predicted probability that the item is of positive class (class 1) 
-
-     When the observation belongs to class 1 (sampleOut = 1) the first part of the formula becomes active
-     and the second part vanishes and vice versa in the case observation's actual class is 0.
-    '''
-
-    return -(sampleOut * np.log(netOut) + (1 - sampleOut) * np.log(1 - netOut))
-
 
 def mse(netOut: np.ndarray, sampleOut: np.ndarray):
-    s = 0
-    for i in np.arange(0, netOut.size):
-        s += np.square(netOut[i] - sampleOut[i]) 
-    return 0.5 * s
+    return np.sum((netOut-sampleOut)**2)/2
 
 def eucl(netOut, sampleOut):
-    s = 0
-    for i in np.arange(0, netOut.size):
-        s += np.square(netOut[i] - sampleOut[i])
+    return np.sqrt(np.sum((netOut-sampleOut)**2))
 
-    return np.sqrt(s)
 #retituisce 1 per match, 0 else
 def accuracy(netOut, sampleOut):
     if netOut >= 0.5:
@@ -103,9 +87,3 @@ def accuracy(netOut, sampleOut):
         return 1
     return 0
 
-def eucl(netOut, sampleOut):
-    s = 0
-    for i in np.arange(0, netOut.size):
-        s += np.square(netOut[i] - sampleOut[i]) 
-
-    return np.sqrt(s)
