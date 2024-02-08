@@ -1,1 +1,4 @@
-[{'eta': 0.9, 'mb': 8, 'momentum': 0.9, 'n_layers': 1, 'n_neurons': 5, 'epochs': 400, 'clip_value': None, 'hid_act_fun': 'tanh', 'out_act_fun': 'sigmoid', 'cost_fun': 'b_ce', 'ridge_lambda': None, 'lasso_lambda': None, 'linear_decay': None, 'eta0': None, 'max_steps': None, 'epochs_update': None}, array([4.7695528e-05])]
+1. {}
+Validation mean = 1000000, Variance = 100
+Training mean (ES) = 100
+

@@ -13,7 +13,7 @@ class Layer:
     def __init__(self, n_inputs: int = 0, n_neurons: int = 0, is_input: bool = False, randomize_weights: bool = False,
                  type="monk"):
         self.is_input = is_input
-        self.n_input = n_inputs
+        self.n_inputs = n_inputs
         self.n_neurons = n_neurons
         self.acc_bias_gradients = None
         self.acc_weight_gradients = None
