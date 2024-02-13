@@ -4,7 +4,7 @@ from math_utils import *
 from Layer import *
 import time
 
-
+import os
 class NeuralNetwork:
     '''
         NeuralNetwork class contains:
@@ -57,10 +57,10 @@ class NeuralNetwork:
 
         totErr = [0.0 for _ in range(len(cost_fun))]
         for row, label in zip(data.itertuples(index=False, name=None), labels.itertuples(index=False, name=None)):
-            totErr = np.add(totErr, self.forwardPropagation(row, label, hid_act_fun,
+            totErr = np.add(totErr, self.forwardPropagation(row, label, hid_act_fun, 
                                                             out_act_fun, cost_fun))
         if (data.shape[0]) != 0:
-            totErr = np.divide(totErr, data.shape[0])
+            totErr = np.divide(totErr,data.shape[0])
         if len(totErr) == 1:
             [totErr] = totErr
         return totErr
@@ -85,7 +85,7 @@ class NeuralNetwork:
                 err.append(accuracy(self.output_layer.output, np.array(label)))
             elif cost_fun[i] == "eucl":
                 err.append(eucl(self.output_layer.output, np.array(label)))
-            else:
+            else:                
                 return None
 
         return err
@@ -107,7 +107,7 @@ class NeuralNetwork:
             net = np.dot(
                 self.hidden_layers[-1].output, self.output_layer.weights[:, i]) + self.output_layer.biases[0][i]
             delta = (label[i] - self.output_layer.output[i]) * \
-                derivative(activationFunc, net)
+            derivative(activationFunc, net)
             self.output_layer.bias_gradients[i] = delta
             # gradiente_w_j,i = bias_i * o_j
             self.output_layer.weight_gradients[:,
@@ -136,12 +136,12 @@ class NeuralNetwork:
             # per ogni neurone del layer calcolo delta, gradiente dei pesi e gradiente del bias
             # considero delta del neurone il corrispettivo valore del gradiente (sono lo stesso valore)
 
-            layer.bias_gradients = np.dot(next_layer.bias_gradients, next_layer.weights.T)*derivative(act_fun, (np.dot(prec_layer.output,
-                                                                                                                       layer.weights) + layer.biases[0]))
+            layer.bias_gradients= np.dot(next_layer.bias_gradients, next_layer.weights.T)*derivative(act_fun, (np.dot(prec_layer.output,
+                                                                                                                      layer.weights) + layer.biases[0]))
 
             layer.weight_gradients = np.dot(prec_layer.output.reshape((len(prec_layer.output), 1)),
                                             layer.bias_gradients.reshape((1, len(layer.bias_gradients))))
-
+            
             layer.acc_bias_gradients += layer.bias_gradients
             layer.acc_weight_gradients += layer.weight_gradients
 
@@ -227,10 +227,10 @@ class NeuralNetwork:
         il termine di regolarizzazaione sarà solo aggiunto nel weight update. 
         Lambda dovrebbe esser moltiplicato per mb/n ma si evita in quanto il parametro sarò automaticamente selezionato nelle grid search
     '''
-    # l'esecuzione attesa di train con ES implica la restituzione di due soli valori (da utilizzare er retrain senza ES), anzichè di 1 o 2 o 4 liste di errori (da utilizzare per il plot)
-    # test_data != None => si calcola anche validation/test loss, outFun2 != None => si calcolano anche traing e test Error
-
-    def train(self, tr_data: pd.DataFrame, params, test_data=None, outFun2: str = None, type=None, es_data=None):
+    #l'esecuzione attesa di train con ES implica la restituzione di due soli valori (da utilizzare er retrain senza ES), anzichè di 1 o 2 o 4 liste di errori (da utilizzare per il plot)
+    #test_data != None => si calcola anche validation/test loss, outFun2 != None => si calcolano anche traing e test Error
+    
+    def train(self, tr_data: pd.DataFrame, params, test_data=None, outFun2: str = None, type = None, es_data=None):
         mb = params["mb"]
         epochs = params["epochs"]
         hid_act_fun = params["hid_act_fun"]
@@ -264,14 +264,14 @@ class NeuralNetwork:
             if outFun2 is not None:
                 fun2_test_err = []
         if es_data is not None:
-            es_label_ = es_data[['TARGET_x', 'TARGET_y', 'TARGET_z']]
+            es_label_ = es_data[['TARGET_x', 'TARGET_y','TARGET_z']]
             es_data_ = es_data.drop(
                 ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
-            min_esError = 100000
-            min_trError = 0
-            min_testError = 0
-            es_patience = params["es_patience"]
-            epochsCounter = 1
+            min_esError=1000000
+            min_trError=1000000
+            min_testError=1000000
+            es_patience=params["es_patience"]
+            epochsCounter=1
             # se usaimo ES, continua ad iterare finchè
 
         forward = []
@@ -280,10 +280,11 @@ class NeuralNetwork:
         update = []
         zero = []
 
-        # TODO: stabilire se far continuare all'inifito o finche non overfitta nel caso in cui si attiva ES'
+        #TODO: stabilire se far continuare all'inifito o finche non overfitta nel caso in cui si attiva ES'
         for epoch in np.arange(1, epochs + 1):
             # shuffle dataframe before each epoch
             # np.random.seed()
+            
             tr_data = tr_data.sample(frac=1)
             if linear_decay and decay_step < decay_max_steps:
                 decay_step += 1
@@ -313,7 +314,7 @@ class NeuralNetwork:
                     # Forward propagation
                     temp = time.time()
                     self.forwardPropagation(
-                        row, label, hid_act_fun, out_act_fun, cost_fun)
+                        row, label, hid_act_fun, out_act_fun, [cost_fun])
                     forward.append(time.time()-temp)
 
                     # backPropagation
@@ -345,10 +346,10 @@ class NeuralNetwork:
                 data = (tr_data.drop(
                     ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1))
 
-            # Early stopping non va applicato anche su fun2
+            #Early stopping non va applicato anche su fun2
             if outFun2 is not None:
-                [err1, err2] = self.calcError(
-                    data, labels, hid_act_fun, out_act_fun, [cost_fun, outFun2])
+                [err1,err2] = self.calcError(
+                    data, labels, hid_act_fun, out_act_fun, [cost_fun,outFun2])
                 train_errors.append(err1)
                 fun2_train_err.append(err2)
                 if test_data is not None:
@@ -360,8 +361,8 @@ class NeuralNetwork:
                                             'TARGET_z']]
                         data = test_data.drop(
                             ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
-                    [err1, err2] = self.calcError(
-                        data, labels, hid_act_fun, out_act_fun, [cost_fun, outFun2])
+                    [err1,err2] = self.calcError(
+                        data, labels, hid_act_fun, out_act_fun, [cost_fun,outFun2])
                     test_errors.append(err1)
                     fun2_test_err.append(err2)
             else:
@@ -382,12 +383,16 @@ class NeuralNetwork:
             if es_data is not None and test_data is not None:
                 esError = self.calcError(
                     es_data_, es_label_, hid_act_fun, out_act_fun, [cost_fun])
+             
+                if np.isnan(esError):
+                    # overflow
+                    return min_trError, min_testError
                 if esError > min_esError:
                     if epochsCounter > es_patience:
                         # Stop training
                         return min_trError, min_testError
                     else:
-                        epochsCounter += 1
+                        epochsCounter+= 1
                 if esError < min_esError:
                     min_esError = esError
                     min_trError = train_errors[-1]
@@ -401,6 +406,7 @@ class NeuralNetwork:
         if es_data is not None and test_data is not None:
             return min_trError, min_testError
 
+
         if outFun2 is not None and test_data is not None:
             return test_errors, train_errors, fun2_test_err, fun2_train_err
         elif outFun2 is None and test_data is not None:
@@ -410,8 +416,8 @@ class NeuralNetwork:
 
         return train_errors
     # si suppone che la k-fold sia solo usata nella grid, che è solo usata in Cup con ES
-
-    def k_fold(self, k, data, parameters, es_data):
+    
+    def k_fold(self, k, data, parameters,es_data):
         '''
         theta is the parameter we are performing the search on 
         parameters is the list of all other parameters
@@ -427,9 +433,8 @@ class NeuralNetwork:
         for fold in folds:
             tr_set = pd.concat(
                 [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
-            tr_error, valid_error = self.train(
-                tr_set, parameters, test_data=fold, es_data=es_data)
-            # print(tr_set)
+            tr_error, valid_error= self.train(tr_set, parameters,test_data=fold,es_data=es_data)
+            #print(tr_set)
             valid_errors.append(valid_error)
             tr_errors.append(tr_error)
         valid_errors = np.array(valid_errors)
@@ -437,8 +442,8 @@ class NeuralNetwork:
         valid_mean = valid_errors.mean()
         tr_mean = tr_errors.mean()
         valid_var = valid_errors.var()
-        # print(f"Valid error:{mean}, Variance = {var}, with par {parameters}")
-        return tr_mean, valid_mean, valid_var
+
+        return tr_mean,valid_mean, valid_var
 
     def __len__(self):
         '''Return the number of layers of the network'''

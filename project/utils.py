@@ -22,9 +22,9 @@ def get_search_space(grid):
     return dict_search_space
 
 
-def parallel_grid_search(k, data, es_data, search_space, n_inputs, n_outputs, refined=False, epochs_refinment=1000, type="monk", verbose="no"):
+def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, refined=False, epochs_refinment=1000, type="monk", verbose="no"):
     # %todo: controllare che abbai senso fare sta roba effettivamente
-    cpus = int(cpu_count() / 2 - 1)
+    cpus = 10
     if len(search_space) >= cpus:
         n_cores = cpus
     else:
@@ -32,8 +32,8 @@ def parallel_grid_search(k, data, es_data, search_space, n_inputs, n_outputs, re
     print(f"N_cores = {n_cores}")
     dirName = None
     if verbose == "yes":
-        dirName = "gridResults_" + \
-            "".join(random.choice(string.ascii_letters) for _ in range(10))
+        dirName="gridResults_" + \
+        "".join(random.choice(string.ascii_letters) for _ in range(10))
         os.makedirs(dirName)
     split_search_space = np.array_split(search_space, n_cores)
     processes = []
@@ -55,7 +55,7 @@ def parallel_grid_search(k, data, es_data, search_space, n_inputs, n_outputs, re
         search_space = []
         for elem in res[0]:
             (err, (variance, parameters)) = elem
-            parameters["epochs"] = epochs_refinment
+            parameters["epochs"]=epochs_refinment
             search_space.append(parameters)
         parallel_grid_search(
             10, data, es_data, search_space, n_inputs, n_outputs)
@@ -68,7 +68,7 @@ def parallel_grid_search(k, data, es_data, search_space, n_inputs, n_outputs, re
 
 
 # Si suppone se sia eseguita solo su CUP, sempre con ES
-def grid_search(k, data, es_data, search_space, n_inputs, n_outputs, shared_res=None, lock=None, type="monk", verbose="no", dirName=None):
+def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=None, lock=None, type="monk", verbose="no", dirName=None):
     # minqueue usata per tenere traccia delle 10 migliori combinazioni
     best_comb = []
     for parameters in search_space:
@@ -82,24 +82,24 @@ def grid_search(k, data, es_data, search_space, n_inputs, n_outputs, shared_res=
 
         net.add_output_layer(n_neurons, n_outputs)
         # tr_sarà l'errore scesi sotto il quale il modello rischia di overfittare quindi bisgona interrompere il training
-        tr_err, valid_err, valid_variance = net.k_fold(
-            k, data, parameters, es_data=es_data)
+        tr_err,valid_err, valid_variance = net.k_fold(
+            k, data, parameters,es_data)
         minQueue.push(
-            best_comb, (valid_err, (valid_variance, tr_err, parameters)))
+            best_comb,(valid_err,(valid_variance,tr_err,parameters)))
         if verbose == "yes":
-            randName = dirName+"/" + \
-                "".join(random.choice(string.ascii_letters) for _ in range(15))
+            randName=dirName + "/" + "".join(random.choice(string.ascii_letters) for _ in range(15))
             file = open(randName+".txt", "w")
             print(f"{parameters}\nValidation mean = {valid_err}, Variance = {valid_variance}\nTraining mean (ES) = {tr_err}\n", file=file)
             file.close()
+
 
     if shared_res is not None:
         lock.acquire()
         temp = shared_res[0]
         for i in range(len(best_comb)):
-            minQueue.push(temp, best_comb[i])
+            minQueue.push(temp,best_comb[i])
 
-        shared_res[0] = temp
+        shared_res[0]=temp
         lock.release()
 
     else:
@@ -128,48 +128,45 @@ def weight_average(nets):
         [net.output_layer.biases for net in nets], axis=1)
 
     return final_net
-
-def plot_loss_Cup(losses: np.ndarray, cost_fun: str, ax, test_losses=None):
+        
+def plot_loss_Cup(losses: np.ndarray, cost_fun: str,ax,test_losses=None):
     iterations = np.arange(len(losses))
     ax.set_xlabel("Epochs")
     if cost_fun == "mse":
         ax.set_ylabel("MSE Loss")
         ax.set_title("Learning Curve")
-        label1 = "training loss"
-        label2 = "test loss"
+        label1 ="training loss"
+        label2 ="test loss"
     else:
         ax.set_ylabel("MEE Error")
         ax.set_title("Learning Curve")
         label1 = "training error"
         label2 = "test error"
 
-    loss = ax.plot(iterations, losses, color="black", label=label1)
+    loss = ax.plot(iterations, losses, color="black", label = label1)
     if test_losses is not None:
         iterations = np.arange(len(test_losses))
-        test = ax.plot(iterations, test_losses, color="red",
-                       linestyle='--', label=label2)
+        test = ax.plot(iterations, test_losses, color="red",linestyle='--',label= label2)
     ax.legend()
 
-
-def plot_loss_Monk(losses: np.ndarray, cost_fun: str, ax, test_losses=None):
+def plot_loss_Monk(losses: np.ndarray, cost_fun: str,ax,test_losses=None):
     iterations = np.arange(len(losses))
     ax.set_xlabel("Epochs")
     if cost_fun == "mse":
         ax.set_ylabel("MSE Loss")
         ax.set_title("Learning Curve")
-        label1 = "training loss"
-        label2 = "test loss"
+        label1 ="training loss"
+        label2 ="test loss"
     else:
         ax.set_ylabel("Accuracy")
         ax.set_title("Learning Curve")
         label1 = "training accuracy"
         label2 = "test accuracy"
 
-    loss = ax.plot(iterations, losses, color="black", label=label1)
+    loss = ax.plot(iterations, losses, color="black", label = label1)
     if test_losses is not None:
         iterations = np.arange(len(test_losses))
-        test = ax.plot(iterations, test_losses, color="red",
-                       linestyle='--', label=label2)
+        test = ax.plot(iterations, test_losses, color="red",linestyle='--',label= label2)
     ax.legend()
 
 
@@ -180,4 +177,3 @@ def process_monk_data(data: pd.DataFrame):
     data = pd.get_dummies(
         data, columns=["a1", "a2", "a3", "a4", "a5", "a6"], dtype=int)
     return data
-
