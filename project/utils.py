@@ -50,18 +50,19 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, ref
         process.join()
 
     print("GRID SEARCH FINISHED")
+    temp=res[0]
+    minQueue.printQueue(res[0])
     if refined:
         print("Results' refinment...")
         search_space = []
-        for elem in res[0]:
-            (err, (variance, parameters)) = elem
+        for elem in temp:
+            (val_mean, (variance, tr_mean, parameters)) = elem
             parameters["epochs"]=epochs_refinment
             search_space.append(parameters)
         parallel_grid_search(
-            10, data, es_data, search_space, n_inputs, n_outputs)
+            5, data, es_data, search_space, n_inputs, n_outputs,type="cup",verbose="yes")
 
     else:
-        minQueue.printQueue(res[0])
         f = open("./results.txt", "w")
         minQueue.printQueue(res[0], file=f)
         f.close()
@@ -86,6 +87,7 @@ def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=N
             k, data, parameters,es_data)
         minQueue.push(
             best_comb,(valid_err,(valid_variance,tr_err,parameters)))
+
         if verbose == "yes":
             randName=dirName + "/" + "".join(random.choice(string.ascii_letters) for _ in range(15))
             file = open(randName+".txt", "w")
@@ -97,7 +99,11 @@ def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=N
         lock.acquire()
         temp = shared_res[0]
         for i in range(len(best_comb)):
-            minQueue.push(temp,best_comb[i])
+            val_mean, (variance,tr_mean,comb) = best_comb[i]
+            # dato che col primo push avevamo reso negativi tutte le val_mean, adesso vanno riportate
+            # a positive altrimenti il confronto verrà fatto tra valori positivi (pushati) e negativi (sulla priority queue)
+            val_mean = val_mean*(-1)
+            minQueue.push(temp,(val_mean, (variance,tr_mean,comb)))
 
         shared_res[0]=temp
         lock.release()

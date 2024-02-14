@@ -10,7 +10,7 @@ import numpy as np
 # quello in valore assoluto maggiore (che è quello che eventualmente ci interessa togliere dalla queue)
 def push(list_, elem):
     val_mean, (variance,tr_mean,comb) = elem
-    if val_mean== 1000000.0: 
+    if val_mean == 1000000.0:
         return
     new_mean= val_mean* (-1)
     if len(list_)< 10:
@@ -31,7 +31,7 @@ def printQueue(list_,file=None):
         temp.append((val_mean, (variance,tr_mean,comb)))
     k=1
     for i in range(len(temp)):
-        val_mean, (variance,tr_mean,comb) = temp[i]
+        val_mean, (variance,tr_mean,comb) = temp[len(temp)-1-i]
         if file != None:
             print(f"{k}. {comb}\nValidation mean = {val_mean}, Variance = {variance}\nTraining mean (ES) = {tr_mean}\n",file=file)
         else:
