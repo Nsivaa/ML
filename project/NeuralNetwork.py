@@ -390,6 +390,7 @@ class NeuralNetwork:
                 if esError > min_esError:
                     if epochsCounter > es_patience:
                         # Stop training
+                        print("EARLY STOPPED")
                         return min_trError, min_testError
                     else:
                         epochsCounter+= 1
@@ -417,33 +418,6 @@ class NeuralNetwork:
         return train_errors
     # si suppone che la k-fold sia solo usata nella grid, che è solo usata in Cup con ES
     
-    def k_fold(self, k, data, parameters,es_data):
-        '''
-        theta is the parameter we are performing the search on 
-        parameters is the list of all other parameters
-        values is the list of values to try for theta
-        '''
-        if "ID" in data.columns:
-            data.drop(["ID"], axis=1, inplace=True)
-        np.random.seed()
-        data = data.sample(frac=1)
-        folds = np.array_split(data, k)
-        valid_errors = []
-        tr_errors = []
-        for fold in folds:
-            tr_set = pd.concat(
-                [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
-            tr_error, valid_error= self.train(tr_set, parameters,test_data=fold,es_data=es_data)
-            #print(tr_set)
-            valid_errors.append(valid_error)
-            tr_errors.append(tr_error)
-        valid_errors = np.array(valid_errors)
-        tr_errors = np.array(tr_errors)
-        valid_mean = valid_errors.mean()
-        tr_mean = tr_errors.mean()
-        valid_var = valid_errors.var()
-
-        return tr_mean,valid_mean, valid_var
 
     def __len__(self):
         '''Return the number of layers of the network'''

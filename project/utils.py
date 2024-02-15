@@ -73,18 +73,9 @@ def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=N
     # minqueue usata per tenere traccia delle 10 migliori combinazioni
     best_comb = []
     for parameters in search_space:
-        n_layers = parameters["n_layers"]
-        n_neurons = parameters["n_neurons"]
-        net = NeuralNetwork(type=type)
-        net.add_input_layer(n_inputs)
-        net.add_hidden_layer(n_inputs, n_neurons)
-        for _ in np.arange(n_layers - 1):
-            net.add_hidden_layer(n_neurons, n_neurons)
-
-        net.add_output_layer(n_neurons, n_outputs)
         # tr_sarà l'errore scesi sotto il quale il modello rischia di overfittare quindi bisgona interrompere il training
-        tr_err,valid_err, valid_variance = net.k_fold(
-            k, data, parameters,es_data)
+        tr_err,valid_err, valid_variance = k_fold(
+            k, data, parameters,es_data,type,n_inputs,n_outputs)
         minQueue.push(
             best_comb,(valid_err,(valid_variance,tr_err,parameters)))
 
@@ -111,6 +102,48 @@ def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=N
     else:
         print("GRID SEARCH FINISHED")
         minQueue.printQueue(best_comb)
+
+def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs):
+    '''
+    theta is the parameter we are performing the search on
+    parameters is the list of all other parameters
+    values is the list of values to try for theta
+    '''
+    if "ID" in data.columns:
+        data.drop(["ID"], axis=1, inplace=True)
+    np.random.seed()
+    data = data.sample(frac=1)
+    folds = np.array_split(data, k)
+    valid_errors = []
+    tr_errors = []
+    K=1
+    for fold in folds:
+        n_layers = parameters["n_layers"]
+        n_neurons = parameters["n_neurons"]
+        net = NeuralNetwork(type=type)
+        net.add_input_layer(n_inputs)
+        net.add_hidden_layer(n_inputs, n_neurons)
+        for _ in np.arange(n_layers - 1):
+            net.add_hidden_layer(n_neurons, n_neurons)
+
+        net.add_output_layer(n_neurons, n_outputs)
+        K+=1
+        tr_set = pd.concat(
+            [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
+        tr_error, valid_error= net.train(tr_set, parameters,test_data=fold,es_data=es_data)
+        #print(tr_set)
+        valid_errors.append(valid_error)
+        tr_errors.append(tr_error)
+
+    valid_errors = np.array(valid_errors)
+    tr_errors = np.array(tr_errors)
+    valid_mean = valid_errors.mean()
+    tr_mean = tr_errors.mean()
+    valid_var = valid_errors.var()
+    print(f"val_mean = {valid_mean}")
+
+    return tr_mean,valid_mean, valid_var
+
 
 def weight_average(nets):
     # assumes every net in the list has the same number of neurons
