@@ -4,7 +4,9 @@ from math_utils import *
 from Layer import *
 import time
 
-import os
+np.seterr(divide='ignore')
+np.seterr(invalid='ignore')
+np.seterr(over='ignore')
 class NeuralNetwork:
     '''
         NeuralNetwork class contains:

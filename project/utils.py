@@ -105,9 +105,7 @@ def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=N
 
 def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs):
     '''
-    theta is the parameter we are performing the search on
-    parameters is the list of all other parameters
-    values is the list of values to try for theta
+
     '''
     if "ID" in data.columns:
         data.drop(["ID"], axis=1, inplace=True)

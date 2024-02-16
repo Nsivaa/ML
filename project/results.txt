@@ -1,4 +1,40 @@
-1. {}
-Validation mean = 1000000, Variance = 100
-Training mean (ES) = 100
+1. {'eta': 0.0001, 'mb': 1, 'momentum': 0.97, 'n_layers': 1, 'n_neurons': 400, 'epochs': 1000, 'clip_value': None, 'hid_act_fun': 'relu', 'out_act_fun': 'linear', 'cost_fun': 'eucl', 'ridge_lambda': None, 'lasso_lambda': None, 'decay_max_steps': None, 'decay_min_value': None, 'es_patience': 50}
+Validation mean = 0.78095414443248, Variance = 0.0029673010045107836
+Training mean (ES) = 0.21892800998848577
+
+2. {'eta': 0.001, 'mb': 1, 'momentum': 0.8, 'n_layers': 1, 'n_neurons': 400, 'epochs': 1000, 'clip_value': None, 'hid_act_fun': 'relu', 'out_act_fun': 'linear', 'cost_fun': 'eucl', 'ridge_lambda': None, 'lasso_lambda': None, 'decay_max_steps': None, 'decay_min_value': None, 'es_patience': 50}
+Validation mean = 0.8175033292082677, Variance = 0.005450103242444826
+Training mean (ES) = 0.29757682729669377
+
+3. {'eta': 0.001, 'mb': 4, 'momentum': 0.9, 'n_layers': 1, 'n_neurons': 400, 'epochs': 1000, 'clip_value': None, 'hid_act_fun': 'relu', 'out_act_fun': 'linear', 'cost_fun': 'eucl', 'ridge_lambda': None, 'lasso_lambda': None, 'decay_max_steps': None, 'decay_min_value': None, 'es_patience': 50}
+Validation mean = 0.8209107507708919, Variance = 0.00676897824585662
+Training mean (ES) = 0.23360892990217375
+
+4. {'eta': 0.0001, 'mb': 2, 'momentum': 0.97, 'n_layers': 1, 'n_neurons': 400, 'epochs': 1000, 'clip_value': None, 'hid_act_fun': 'relu', 'out_act_fun': 'linear', 'cost_fun': 'eucl', 'ridge_lambda': None, 'lasso_lambda': None, 'decay_max_steps': None, 'decay_min_value': None, 'es_patience': 50}
+Validation mean = 0.8257626465188987, Variance = 0.0007716440475402963
+Training mean (ES) = 0.2490147878583271
+
+5. {'eta': 0.001, 'mb': 4, 'momentum': 0.8, 'n_layers': 1, 'n_neurons': 400, 'epochs': 1000, 'clip_value': None, 'hid_act_fun': 'relu', 'out_act_fun': 'linear', 'cost_fun': 'eucl', 'ridge_lambda': None, 'lasso_lambda': None, 'decay_max_steps': None, 'decay_min_value': None, 'es_patience': 50}
+Validation mean = 0.8351625088971646, Variance = 0.008321131052406753
+Training mean (ES) = 0.28849605306885084
+
+6. {'eta': 0.001, 'mb': 8, 'momentum': 0.95, 'n_layers': 1, 'n_neurons': 400, 'epochs': 1000, 'clip_value': None, 'hid_act_fun': 'relu', 'out_act_fun': 'linear', 'cost_fun': 'eucl', 'ridge_lambda': None, 'lasso_lambda': None, 'decay_max_steps': None, 'decay_min_value': None, 'es_patience': 50}
+Validation mean = 0.8432018793803927, Variance = 0.008671716693625372
+Training mean (ES) = 0.2237317224057001
+
+7. {'eta': 0.0001, 'mb': 1, 'momentum': 0.95, 'n_layers': 1, 'n_neurons': 400, 'epochs': 1000, 'clip_value': None, 'hid_act_fun': 'relu', 'out_act_fun': 'linear', 'cost_fun': 'eucl', 'ridge_lambda': None, 'lasso_lambda': None, 'decay_max_steps': None, 'decay_min_value': None, 'es_patience': 50}
+Validation mean = 0.8608548125732138, Variance = 0.006730903437688377
+Training mean (ES) = 0.26464254753988337
+
+8. {'eta': 0.001, 'mb': 4, 'momentum': 0.9, 'n_layers': 1, 'n_neurons': 250, 'epochs': 1000, 'clip_value': None, 'hid_act_fun': 'relu', 'out_act_fun': 'linear', 'cost_fun': 'eucl', 'ridge_lambda': None, 'lasso_lambda': None, 'decay_max_steps': None, 'decay_min_value': None, 'es_patience': 50}
+Validation mean = 0.8706299177540459, Variance = 0.005839595263241658
+Training mean (ES) = 0.3268026535470798
+
+9. {'eta': 0.01, 'mb': 32, 'momentum': 0.9, 'n_layers': 1, 'n_neurons': 400, 'epochs': 1000, 'clip_value': None, 'hid_act_fun': 'relu', 'out_act_fun': 'linear', 'cost_fun': 'eucl', 'ridge_lambda': None, 'lasso_lambda': None, 'decay_max_steps': None, 'decay_min_value': None, 'es_patience': 50}
+Validation mean = 0.8773197420518694, Variance = 0.006630544095354551
+Training mean (ES) = 0.31657710607494954
+
+10. {'eta': 0.0001, 'mb': 4, 'momentum': 0.99, 'n_layers': 1, 'n_neurons': 400, 'epochs': 1000, 'clip_value': None, 'hid_act_fun': 'relu', 'out_act_fun': 'linear', 'cost_fun': 'eucl', 'ridge_lambda': None, 'lasso_lambda': None, 'decay_max_steps': None, 'decay_min_value': None, 'es_patience': 50}
+Validation mean = 0.9086523189526753, Variance = 0.007842134572441789
+Training mean (ES) = 0.2720494676717015
 

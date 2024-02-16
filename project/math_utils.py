@@ -1,4 +1,8 @@
 import numpy as np
+np.seterr(divide='ignore')
+np.seterr(invalid='ignore')
+np.seterr(over='ignore')
+
 
 def relu(x):
     return np.where(x > 0, x, 0)

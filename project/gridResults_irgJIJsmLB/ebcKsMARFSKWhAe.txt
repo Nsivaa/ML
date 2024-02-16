@@ -1,0 +1,4 @@
+{'eta': 0.001, 'mb': 4, 'momentum': 0.9, 'n_layers': 1, 'n_neurons': 400, 'epochs': 500, 'clip_value': None, 'hid_act_fun': 'relu', 'out_act_fun': 'linear', 'cost_fun': 'eucl', 'ridge_lambda': None, 'lasso_lambda': None, 'decay_max_steps': None, 'decay_min_value': None, 'es_patience': 50}
+Validation mean = 0.8100817345789013, Variance = 0.007140987859515909
+Training mean (ES) = 0.2582499258350808
+
