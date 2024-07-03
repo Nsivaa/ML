@@ -38,7 +38,7 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, ref
     processes = []
     manager = Manager()
     lock = Lock()
-    res = manager.list([[(-1000000, (100, 100, {}))]])
+    res = manager.list([[(-np.inf, (100, 100, {}))]])
     for i in np.arange(n_cores):
         processes.append(Process(target=grid_search,
                                  args=(k, data, es_data, split_search_space[i], n_inputs,
@@ -59,29 +59,33 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, ref
             parameters["epochs"]=epochs_refinment
             search_space.append(parameters)
         parallel_grid_search(
-            5, data, es_data, search_space, n_inputs, n_outputs,type="cup",verbose="yes")
+            5, data, es_data, search_space, n_inputs, n_outputs,type="cup",verbose="refined")
 
     else:
         f = open("./results.txt", "w")
         minQueue.printQueue(res[0], file=f)
         f.close()
+        print("REFINED SEARCH FINISHED")
 
 
 # Si suppone se sia eseguita solo su CUP, sempre con ES
 def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=None, lock=None, type="monk", verbose="no", dirName=None):
     # minqueue usata per tenere traccia delle 10 migliori combinazioni
     best_comb = []
+    ref_string = ""
+    if verbose == "refined":
+        ref_string = "REFINED"
     for parameters in search_space:
         # tr_sarà l'errore scesi sotto il quale il modello rischia di overfittare quindi bisgona interrompere il training
         tr_err,valid_err, valid_variance = k_fold(
             k, data, parameters,es_data,type,n_inputs,n_outputs)
         minQueue.push(
             best_comb,(valid_err,(valid_variance,tr_err,parameters)))
-
+        
         if verbose == "yes":
-            randName=dirName + "/" + "".join(random.choice(string.ascii_letters) for _ in range(15))
-            file = open(randName+".txt", "w")
-            print(f"{parameters}\nValidation mean = {valid_err}, Variance = {valid_variance}\nTraining mean (ES) = {tr_err}\n", file=file)
+            fileName = dirName + "/" + ",".join(str(v) for v in parameters.values())
+            file = open(fileName + ".txt", "w")
+            print(f"{ref_string} {parameters}\nValidation mean = {valid_err}, Variance = {valid_variance}\nTraining mean (ES) = {tr_err}\n", file=file)
             file.close()
 
 
@@ -111,7 +115,6 @@ def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs):
     folds = np.array_split(data, k)
     valid_errors = []
     tr_errors = []
-    K=1
     for fold in folds:
         n_layers = parameters["n_layers"]
         n_neurons = parameters["n_neurons"]
@@ -122,11 +125,9 @@ def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs):
             net.add_hidden_layer(n_neurons, n_neurons)
 
         net.add_output_layer(n_neurons, n_outputs)
-        K+=1
         tr_set = pd.concat(
             [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
         tr_error, valid_error= net.train(tr_set, parameters,test_data=fold,es_data=es_data)
-        #print(tr_set)
         valid_errors.append(valid_error)
         tr_errors.append(tr_error)
 
