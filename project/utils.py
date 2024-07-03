@@ -6,6 +6,7 @@ import os
 import random
 import string
 import itertools
+import datetime
 
 import TenMaxPriorityQueue as minQueue
 
@@ -52,7 +53,7 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, ref
     temp=res[0]
     minQueue.printQueue(res[0])
     if refined:
-        print("Results' refinment...")
+        print("Results refinement...")
         search_space = []
         for elem in temp:
             (val_mean, (variance, tr_mean, parameters)) = elem
@@ -62,7 +63,10 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, ref
             5, data, es_data, search_space, n_inputs, n_outputs,type="cup",verbose="refined")
 
     else:
-        f = open("./results.txt", "w")
+        current_time = datetime.datetime.now()
+        time = f"{current_time.month}-{current_time.day}-{current_time.hour }:{current_time.minute}:{current_time.second}"
+        filename = "./" + time + "_results.txt"
+        f = open(filename, "w")
         minQueue.printQueue(res[0], file=f)
         f.close()
         print("REFINED SEARCH FINISHED")
