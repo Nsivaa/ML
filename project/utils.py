@@ -2,11 +2,8 @@ import numpy as np
 import pandas as pd
 from multiprocessing import Process, Manager, Lock, cpu_count
 from NeuralNetwork import *
-import os
 import random
-import string
 import itertools
-
 import TenMaxPriorityQueue as minQueue
 
 
@@ -22,19 +19,13 @@ def get_search_space(grid):
     return dict_search_space
 
 
-def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, refined=False, epochs_refinment=1000, type="monk", verbose="no"):
-    # %todo: controllare che abbai senso fare sta roba effettivamente
+def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, refined=False, epochs_refinment=1000, type="monk"):
     cpus = 10
     if len(search_space) >= cpus:
         n_cores = cpus
     else:
         n_cores = len(search_space)
     print(f"N_cores = {n_cores}")
-    dirName = None
-    if verbose == "yes":
-        dirName="gridResults_" + \
-        "".join(random.choice(string.ascii_letters) for _ in range(10))
-        os.makedirs(dirName)
     split_search_space = np.array_split(search_space, n_cores)
     processes = []
     manager = Manager()
@@ -43,7 +34,7 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, ref
     for i in np.arange(n_cores):
         processes.append(Process(target=grid_search,
                                  args=(k, data, es_data, split_search_space[i], n_inputs,
-                                       n_outputs, res, lock, type, verbose, dirName)))
+                                       n_outputs, res, lock, type)))
         processes[i].start()
 
     for process in processes:
@@ -53,14 +44,14 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, ref
     temp=res[0]
     minQueue.printQueue(res[0])
     if refined:
-        print("Results' refinment...")
+        print("Results refinment...")
         search_space = []
         for elem in temp:
             (val_mean, (variance, tr_mean, parameters)) = elem
             parameters["epochs"]=epochs_refinment
             search_space.append(parameters)
         parallel_grid_search(
-            5, data, es_data, search_space, n_inputs, n_outputs,type="cup",verbose="yes")
+            5, data, es_data, search_space, n_inputs, n_outputs,type="cup")
 
     else:
         f = open("./results.txt", "w")
@@ -69,7 +60,7 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, ref
 
 
 # Si suppone se sia eseguita solo su CUP, sempre con ES
-def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=None, lock=None, type="monk", verbose="no", dirName=None):
+def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=None, lock=None, type="monk"):
     # minqueue usata per tenere traccia delle 10 migliori combinazioni
     best_comb = []
     for parameters in search_space:
@@ -78,13 +69,6 @@ def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=N
             k, data, parameters,es_data,type,n_inputs,n_outputs)
         minQueue.push(
             best_comb,(valid_err,(valid_variance,tr_err,parameters)))
-
-        if verbose == "yes":
-            randName=dirName + "/" + "".join(random.choice(string.ascii_letters) for _ in range(15))
-            file = open(randName+".txt", "w")
-            print(f"{parameters}\nValidation mean = {valid_err}, Variance = {valid_variance}\nTraining mean (ES) = {tr_err}\n", file=file)
-            file.close()
-
 
     if shared_res is not None:
         lock.acquire()
@@ -101,12 +85,11 @@ def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=N
 
     else:
         print("GRID SEARCH FINISHED")
+
         minQueue.printQueue(best_comb)
 
 def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs):
-    '''
 
-    '''
     if "ID" in data.columns:
         data.drop(["ID"], axis=1, inplace=True)
     np.random.seed()

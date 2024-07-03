@@ -275,9 +275,6 @@ class NeuralNetwork:
             es_patience=params["es_patience"]
             epochsCounter=1
 
-
-        backprophid = []
-
         
         # print every 10 seconds / 100 iterations
         for epoch in tqdm(np.arange(1, epochs + 1), desc="Training", unit="epoch", miniters=100, mininterval=10):
