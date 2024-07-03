@@ -3,6 +3,7 @@ import pandas as pd
 from math_utils import *
 from Layer import *
 import time
+from tqdm import tqdm 
 
 np.seterr(divide='ignore')
 np.seterr(invalid='ignore')
@@ -54,7 +55,7 @@ class NeuralNetwork:
         return
 
     def calcError(self, data: pd.DataFrame, labels: pd.DataFrame,
-                  hid_act_fun: str = None, out_act_fun: str = None, cost_fun: list[str] = None):
+                  hid_act_fun: str = None, out_act_fun: str = None, cost_fun: list = None):
         # calcola l'errore sul dataset con i pesi e i bias correnti
 
         totErr = [0.0 for _ in range(len(cost_fun))]
@@ -67,7 +68,7 @@ class NeuralNetwork:
             [totErr] = totErr
         return totErr
 
-    def forwardPropagation(self, row: tuple, label: tuple, hid_act_fun: str, out_act_fun: str, cost_fun: list[str]):
+    def forwardPropagation(self, row: tuple, label: tuple, hid_act_fun: str, out_act_fun: str, cost_fun: list):
         # restituisce il risultato della loss function calcolato per i pesi correnti e l'input (row,label)
 
         self.input_layer.output = np.asarray(row)
@@ -281,9 +282,9 @@ class NeuralNetwork:
         backprophid = []
         update = []
         zero = []
-
-        #TODO: stabilire se far continuare all'inifito o finche non overfitta nel caso in cui si attiva ES'
-        for epoch in np.arange(1, epochs + 1):
+        
+        # print every 10 seconds
+        for epoch in tqdm(np.arange(1, epochs + 1), desc="Training", unit="epoch", miniters=100, mininterval=10):
             # shuffle dataframe before each epoch
             # np.random.seed()
             
