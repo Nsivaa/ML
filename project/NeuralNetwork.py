@@ -2,12 +2,13 @@ import numpy as np
 import pandas as pd
 from math_utils import *
 from Layer import *
-import time
 from tqdm import tqdm 
 
+# ignore warnings for division by zero, invalid values and overflow
 np.seterr(divide='ignore')
 np.seterr(invalid='ignore')
 np.seterr(over='ignore')
+
 class NeuralNetwork:
     '''
         NeuralNetwork class contains:
@@ -120,7 +121,6 @@ class NeuralNetwork:
         self.output_layer.acc_weight_gradients += self.output_layer.weight_gradients
 
     def hiddenLayerBackpropagation(self, act_fun: str):
-        tot = 0
         for layer in np.arange(len(self.hidden_layers), 0, -1) - 1:
 
             if layer == len(self.hidden_layers) - 1:
@@ -148,7 +148,6 @@ class NeuralNetwork:
             layer.acc_bias_gradients += layer.bias_gradients
             layer.acc_weight_gradients += layer.weight_gradients
 
-        return tot
 
     # tengo due versioni di una matrice di gradienti per i pesi ed un vettore di gradienti per i bias
     # una versione è riservata ad i calcoli relativi ad uno specifico smple, mentre la versione "acc_" serve per il calolo del gradiente tenendo conto di tutti i samples
@@ -270,20 +269,17 @@ class NeuralNetwork:
             es_label_ = es_data[['TARGET_x', 'TARGET_y','TARGET_z']]
             es_data_ = es_data.drop(
                 ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
-            min_esError=1000000
-            min_trError=1000000
-            min_testError=1000000
+            min_esError=np.inf
+            min_trError=np.inf
+            min_testError=np.inf
             es_patience=params["es_patience"]
             epochsCounter=1
-            # se usaimo ES, continua ad iterare finchè
 
-        forward = []
-        backpropout = []
+
         backprophid = []
-        update = []
-        zero = []
+
         
-        # print every 10 seconds
+        # print every 10 seconds / 100 iterations
         for epoch in tqdm(np.arange(1, epochs + 1), desc="Training", unit="epoch", miniters=100, mininterval=10):
             # shuffle dataframe before each epoch
             # np.random.seed()
@@ -294,9 +290,7 @@ class NeuralNetwork:
 
             for step in np.arange(0, n / mb):
                 # tra uno step e l'altro azzero gli accumulatori dei gradienti per ogni layer
-                temp = time.time()
                 self.reset_accumulators()
-                zero.append((time.time()-temp))
                 # preparazione mb_Dataframe
                 start_pos = int(step * mb)
                 end_pos = int(start_pos + mb)
@@ -315,18 +309,12 @@ class NeuralNetwork:
                 for row, label in zip(data.itertuples(index=False, name=None),
                                       labels.itertuples(index=False, name=None)):
                     # Forward propagation
-                    temp = time.time()
                     self.forwardPropagation(
                         row, label, hid_act_fun, out_act_fun, [cost_fun])
-                    forward.append(time.time()-temp)
 
                     # backPropagation
-                    temp = time.time()
                     self.outLayerBackpropagation(label, out_act_fun)
-                    backpropout.append(time.time()-temp)
                     # hidden layers
-                    temp = self.hiddenLayerBackpropagation(hid_act_fun)
-                    backprophid.append(temp)
 
                 # aggiornamento dei pesi
                 if linear_decay:
@@ -334,10 +322,8 @@ class NeuralNetwork:
                                         eta0=eta0, decay_max_steps=decay_max_steps, step=decay_step,
                                         decay_min_value=decay_min_value)
                 else:
-                    temp = time.time()
                     self.update_weights(mb, eta, momentum,
                                         ridge_lambda, lasso_lambda, clip_value)
-                    update.append(time.time()-temp)
 
             # calcolo  degli error su test e fun2 a fine epoca
             if type == "monk":
