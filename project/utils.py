@@ -32,7 +32,7 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, ref
     dirName = None
     if verbose == "yes":
         current_time = datetime.datetime.now()
-        time = f"{current_time.month}-{current_time.day}-{current_time.hour }:{current_time.minute}:{current_time.second}"
+        time = f"{current_time.month}_{current_time.day}_{current_time.hour }_{current_time.minute}_{current_time.second}"
         dirName="gridResults/" + time
         os.makedirs(dirName)
     split_search_space = np.array_split(search_space, n_cores)
