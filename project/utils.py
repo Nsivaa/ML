@@ -129,7 +129,7 @@ def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs):
         net.add_output_layer(n_neurons, n_outputs)
         tr_set = pd.concat(
             [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
-        tr_error, valid_error= net.train(tr_set, parameters,test_data=fold,es_data=es_data)
+        tr_error, valid_error= net.train(tr_set, parameters,test_data=fold,es_data=es_data, progress_bar=False)
         valid_errors.append(valid_error)
         tr_errors.append(tr_error)
 

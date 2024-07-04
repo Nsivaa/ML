@@ -232,7 +232,7 @@ class NeuralNetwork:
     #l'esecuzione attesa di train con ES implica la restituzione di due soli valori (da utilizzare er retrain senza ES), anzichè di 1 o 2 o 4 liste di errori (da utilizzare per il plot)
     #test_data != None => si calcola anche validation/test loss, outFun2 != None => si calcolano anche traing e test Error
     
-    def train(self, tr_data: pd.DataFrame, params, test_data=None, outFun2: str = None, type = None, es_data=None):
+    def train(self, tr_data: pd.DataFrame, params, test_data=None, outFun2: str = None, type = None, es_data=None, progress_bar=True):
         mb = params["mb"]
         epochs = params["epochs"]
         hid_act_fun = params["hid_act_fun"]
@@ -276,7 +276,7 @@ class NeuralNetwork:
             epochsCounter=1
         
         # print every 10 seconds / 100 iterations
-        for epoch in tqdm(np.arange(1, epochs + 1), desc="Training", unit="epoch", miniters=100, mininterval=10):
+        for epoch in tqdm(np.arange(1, epochs + 1), desc="Training", unit="epoch", miniters=100, mininterval=10, disable=not progress_bar):
             # shuffle dataframe before each epoch
             # np.random.seed()
             
