@@ -274,7 +274,6 @@ class NeuralNetwork:
             min_testError=np.inf
             es_patience=params["es_patience"]
             epochsCounter=1
-
         
         # print every 10 seconds / 100 iterations
         for epoch in tqdm(np.arange(1, epochs + 1), desc="Training", unit="epoch", miniters=100, mininterval=10):
@@ -388,11 +387,9 @@ class NeuralNetwork:
 
             # end epoch
         # end training
-        # print("end Training")
 
         if es_data is not None and test_data is not None:
             return min_trError, min_testError
-
 
         if outFun2 is not None and test_data is not None:
             return test_errors, train_errors, fun2_test_err, fun2_train_err

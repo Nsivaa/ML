@@ -4,7 +4,6 @@ from multiprocessing import Process, Manager, Lock, cpu_count
 from NeuralNetwork import *
 import os
 import random
-import string
 import itertools
 import datetime
 
@@ -23,7 +22,7 @@ def get_search_space(grid):
     return dict_search_space
 
 
-def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, refined=False, epochs_refinment=1000, type="monk", verbose="no"):
+def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, refined=False, epochs_refinment=1000, type="monk", verbose="yes"):
     cpus = 10
     if len(search_space) >= cpus:
         n_cores = cpus
@@ -32,8 +31,9 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, ref
     print(f"N_cores = {n_cores}")
     dirName = None
     if verbose == "yes":
-        dirName="gridResults_" + \
-        "".join(random.choice(string.ascii_letters) for _ in range(10))
+        current_time = datetime.datetime.now()
+        time = f"{current_time.month}-{current_time.day}-{current_time.hour }:{current_time.minute}:{current_time.second}"
+        dirName="gridResults/" + time
         os.makedirs(dirName)
     split_search_space = np.array_split(search_space, n_cores)
     processes = []
@@ -61,15 +61,13 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, ref
             search_space.append(parameters)
         parallel_grid_search(
             5, data, es_data, search_space, n_inputs, n_outputs,type="cup",verbose="refined")
+        print("REFINED SEARCH FINISHED")
 
-    else:
-        current_time = datetime.datetime.now()
-        time = f"{current_time.month}-{current_time.day}-{current_time.hour }:{current_time.minute}:{current_time.second}"
-        filename = "./" + time + "_results.txt"
+    if verbose == "yes":
+        filename = "./" + dirName + "/results.txt"
         f = open(filename, "w")
         minQueue.printQueue(res[0], file=f)
         f.close()
-        print("REFINED SEARCH FINISHED")
 
 
 # Si suppone se sia eseguita solo su CUP, sempre con ES
