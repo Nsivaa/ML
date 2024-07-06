@@ -311,7 +311,7 @@ class NeuralNetwork:
                     # backPropagation
                     self.outLayerBackpropagation(label, out_act_fun)
                     # hidden layers
-
+                    self.hiddenLayerBackpropagation(hid_act_fun)
                 # aggiornamento dei pesi
                 if linear_decay:
                     self.update_weights(mb, eta, momentum, ridge_lambda, lasso_lambda,
