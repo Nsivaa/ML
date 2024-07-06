@@ -130,6 +130,8 @@ def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs):
         tr_set = pd.concat(
             [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
         tr_error, valid_error= net.train(tr_set, parameters,test_data=fold,es_data=es_data, progress_bar=False)
+        if tr_error == np.inf and valid_error == np.inf:
+            return 100000.0, 100000.0, 100000.0
         valid_errors.append(valid_error)
         tr_errors.append(tr_error)
 

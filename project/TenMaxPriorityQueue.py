@@ -14,14 +14,22 @@ def push(list_, elem):
         return
     new_mean= val_mean* (-1)
     if len(list_)< 10:
-        heapq.heappush(list_,(new_mean,(variance,tr_mean,comb)))
+        try:
+            heapq.heappush(list_,(new_mean,(variance,tr_mean,comb)))
+        except TypeError:
+            pass
     elif list_[0][0] == new_mean and list_[0][1][0] > variance:
         #l'elemento da aggiungere ha la stessa mean ma minore varianza
-        heapq.heappop(list_)
-        heapq.heappush(list_,(new_mean,(variance,tr_mean,comb)))
+        try:
+            heapq.heappop(list_)
+            heapq.heappush(list_,(new_mean,(variance,tr_mean,comb)))
+        except TypeError:
+            pass
     elif new_mean > list_[0][0]:
-        heapq.heappushpop(list_,(new_mean,(variance,tr_mean,comb)))
-
+        try:
+            heapq.heappushpop(list_,(new_mean,(variance,tr_mean,comb)))
+        except TypeError:
+            pass
 
 def printQueue(list_,file=None):
     temp=[]

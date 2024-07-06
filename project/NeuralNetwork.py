@@ -362,8 +362,16 @@ class NeuralNetwork:
                                             'TARGET_z']]
                         data = test_data.drop(
                             ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
-                    test_errors.append(self.calcError(
-                        data, labels, hid_act_fun, out_act_fun, [cost_fun]))
+                        
+                        
+                    error = self.calcError(
+                        data, labels, hid_act_fun, out_act_fun, [cost_fun])
+                    test_errors.append(error)
+                    
+                    if epoch >= 50 and error > 3.0:
+                        print("KILLED")
+                        return np.inf, np.inf
+                    
 
             if es_data is not None and test_data is not None:
                 esError = self.calcError(
