@@ -2,6 +2,7 @@ import pandas as pd
 import tqdm as tqdm
 import numpy as np
 from math_utils import *
+from NeuralNetwork import *
 class Ensemble:
     '''
         Class which model for the ensemble model of the best 5 models out of model evaluation using grid search
@@ -12,9 +13,12 @@ class Ensemble:
         
     '''
 
-    def __init__(self, models):
+    def __init__(self, structures):
         # models contains the five best networks (NeuralNetwork istances)
-        self.models = models
+        self.models = []
+        self.structures=structures
+        self.n_inputs = 10
+        self.n_outputs = 3
         # the following are array of array conting the training-test errors
         self.tr_mse = [[],[],[],[],[]]
         self.tr_mee = [[],[],[],[],[]]
@@ -23,7 +27,16 @@ class Ensemble:
         # whenever es[i] became True, the i-th model must skip training on the remanining epochs
         self.ES = [False,False,False, False, False]
         
-    
+    def buildModels(self):
+        for (layers, n_neurons) in self.structures:
+            net = NeuralNetwork(type="cup")
+            net.add_input_layer(self.n_inputs)
+            net.add_hidden_layer(self.n_inputs, n_neurons)
+            for i in range(layers-1):
+                net.add_hidden_layer(n_neurons, n_neurons)
+            net.add_output_layer(n_neurons, self.n_outputs)
+            self.models.append(net)
+
     def forwardPropagation(self, row: tuple, label: tuple, hid_act_fun: str, out_act_fun: str, cost_fun: list, onlyPrediction=False):
         # restituisce il risultato della loss function calcolato rispetto l'input (row,label)
         # 3 is the number of outputs of each model
@@ -68,18 +81,20 @@ class Ensemble:
         return totErr
 
 
-    # params is an array of the models train params
+    # train_params contains the train parameters of each model of the ensemble
     # The training method is very similar to the NeuralNetwork one but it's written taking into account the only two times it will be used
-    def train_models(self, tr_data: pd.DataFrame, params, test_data=None, outFun2: str = None,epochs = 2000):
-        mb = params["mb"]
-        es_stop = params["es_stop"]
-        eta = params["eta"]
-        momentum = params["momentum"]
-        ridge_lambda = params["ridge_lambda"]
+    def train_models(self, tr_data: pd.DataFrame, train_params, test_data=None, outFun2: str = None,epochs = 2000):
+        # build models
+        self.buildModels()
+        mb = train_params["mb"]
+        es_stop = train_params["es_stop"]
+        eta = train_params["eta"]
+        momentum = train_params["momentum"]
+        ridge_lambda = train_params["ridge_lambda"]
         # the following three functions are not arrays
-        hid_act_fun = params["hid_act_fun"]
-        out_act_fun = params["out_act_fun"]
-        cost_fun = params["cost_fun"]
+        hid_act_fun = train_params["hid_act_fun"]
+        out_act_fun = train_params["out_act_fun"]
+        cost_fun = train_params["cost_fun"]
 
         if "ID" in tr_data:
             tr_data.drop(["ID"], axis=1, inplace=True)
@@ -208,7 +223,7 @@ class Ensemble:
         # end training
         if outFun2 is None:
             #k-fold
-            return test_mee, train_mee
+            return test_mee[-1], train_mee[-1]
         else: 
             # retraining
             return test_mse, train_mse, test_mee, train_mee

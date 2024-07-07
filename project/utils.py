@@ -7,6 +7,7 @@ import random
 import itertools
 import datetime
 from tqdm import tqdm
+from Ensemble import *
 
 import TenMaxPriorityQueue as minQueue
 
@@ -144,6 +145,35 @@ def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs,es_stop=None, pro
     print(f"val_mean = {valid_mean}")
 
     return tr_mean,valid_mean, valid_var
+
+def k_fold_ensemble(k, data,structures, train_params,progress_bar=True,epochs=2000):
+
+    if "ID" in data.columns:
+        data.drop(["ID"], axis=1, inplace=True)
+    np.random.seed()
+    data = data.sample(frac=1)
+    folds = np.array_split(data, k)
+    valid_errors = []
+    tr_errors = []
+    for fold in tqdm(folds, desc="Folds", disable=not progress_bar):
+        ensemble= Ensemble(structures)
+        tr_set = pd.concat(
+            [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
+        valid_error, tr_error= ensemble.train_models(tr_set, train_params,test_data=fold,epochs=epochs)
+        if tr_error == np.inf and valid_error == np.inf:
+            return np.inf, np.inf, np.inf
+        valid_errors.append(valid_error)
+        tr_errors.append(tr_error)
+
+    valid_errors = np.array(valid_errors)
+    tr_errors = np.array(tr_errors)
+    valid_mean = valid_errors.mean()
+    tr_mean = tr_errors.mean()
+    valid_var = valid_errors.var()
+    print(f"val_mean = {valid_mean}")
+
+    return tr_mean,valid_mean, valid_var
+
 
 
 def weight_average(nets):

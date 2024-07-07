@@ -374,7 +374,7 @@ class NeuralNetwork:
                     # only used when calculating both train and validation mee (cost_fun) on k-fold
                     if (es_stop is not None) and train_errors[-1] < es_stop:
                             print(f"ES with tr_MEE below {train_errors[-1]}")
-                            return test_errors, train_errors
+                            return test_errors[-1], train_errors[-1]
 
                     
 
