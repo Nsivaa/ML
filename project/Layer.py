@@ -30,13 +30,13 @@ class Layer:
                 np.random.seed(0)
             else:
                 np.random.seed()
-            # xavier normalization for weight inizialization
+            # xavier normalization for weight initialization
             shape = self.weights.shape
             if self.type == "monk":
                 self.weights = np.random.randn(
                     *shape) * np.sqrt(2.0 / (shape[0] + shape[1]))
             else:
-                # he inizializzation
+                # he initialization
                 self.weights = np.random.randn(
                     *shape) * np.sqrt(2.0 / shape[0])
 
@@ -48,16 +48,7 @@ class Layer:
 
         return
 
-    ''' 
-    def add_neuron(self, neuron_weights: np.ndarray = None, neuron_bias: int = None):
-        if neuron_weights is not None:
-            if len(neuron_weights.shape) > 1:
-                print("ERROR: Trying to append more than a neuron")
-                return
-        
-        np.append(self.weights, neuron_weights) 
-        np.append(self.biases, neuron_bias)
-    '''
+
 
     # output will be a numpy ndarray with dimension (n)
     # ndarray of shape (1,n) is different from ndarray of shape (n)

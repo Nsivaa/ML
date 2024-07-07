@@ -6,6 +6,7 @@ import os
 import random
 import itertools
 import datetime
+from tqdm import tqdm
 
 import TenMaxPriorityQueue as minQueue
 
@@ -108,7 +109,7 @@ def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=N
         print("GRID SEARCH FINISHED")
         minQueue.printQueue(best_comb)
 
-def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs,es_stop=None):
+def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs,es_stop=None, progress_bar=True):
 
     if "ID" in data.columns:
         data.drop(["ID"], axis=1, inplace=True)
@@ -117,7 +118,7 @@ def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs,es_stop=None):
     folds = np.array_split(data, k)
     valid_errors = []
     tr_errors = []
-    for fold in folds:
+    for fold in tqdm(folds, desc="Folds", disable=not progress_bar):
         n_layers = parameters["n_layers"]
         n_neurons = parameters["n_neurons"]
         net = NeuralNetwork(type=type)
