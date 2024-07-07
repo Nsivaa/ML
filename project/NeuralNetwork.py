@@ -232,7 +232,7 @@ class NeuralNetwork:
     #l'esecuzione attesa di train con ES implica la restituzione di due soli valori (da utilizzare er retrain senza ES), anzichè di 1 o 2 o 4 liste di errori (da utilizzare per il plot)
     #test_data != None => si calcola anche validation/test loss, outFun2 != None => si calcolano anche traing e test Error
     
-    def train(self, tr_data: pd.DataFrame, params, test_data=None, outFun2: str = None, type = None, es_data=None, progress_bar=True):
+    def train(self, tr_data: pd.DataFrame, params, test_data=None, outFun2: str = None, type = None, es_data=None,es_stop= None, progress_bar=True):
         mb = params["mb"]
         epochs = params["epochs"]
         hid_act_fun = params["hid_act_fun"]
@@ -331,7 +331,6 @@ class NeuralNetwork:
                 data = (tr_data.drop(
                     ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1))
 
-            #Early stopping non va applicato anche su fun2
             if outFun2 is not None:
                 [err1,err2] = self.calcError(
                     data, labels, hid_act_fun, out_act_fun, [cost_fun,outFun2])
@@ -350,6 +349,12 @@ class NeuralNetwork:
                         data, labels, hid_act_fun, out_act_fun, [cost_fun,outFun2])
                     test_errors.append(err1)
                     fun2_test_err.append(err2)
+                    # trigger Early stopping if current training mee (fun2) < es_stop 
+                    # only used when calculating both mee and mse (cost_fun) with training and test set in final retraining
+                    if (es_stop is not None) and fun2_train_err[-1] < es_stop:
+                            print(f"ES with tr_MEE below {fun2_train_err[-1]}")
+                            return test_errors, train_errors, fun2_test_err, fun2_train_err
+
             else:
                 train_errors.append(self.calcError(
                     data, labels, hid_act_fun, out_act_fun, [cost_fun]))
@@ -362,15 +367,15 @@ class NeuralNetwork:
                                             'TARGET_z']]
                         data = test_data.drop(
                             ['TARGET_x', 'TARGET_y', 'TARGET_z'], axis=1)
-                        
-                        
                     error = self.calcError(
                         data, labels, hid_act_fun, out_act_fun, [cost_fun])
                     test_errors.append(error)
-                    
-                    if epoch >= 50 and error > 3.0:
-                        print("KILLED")
-                        return np.inf, np.inf
+                    # trigger Early stopping if current training mee (cost_fun) < es_stop 
+                    # only used when calculating both train and validation mee (cost_fun) on k-fold
+                    if (es_stop is not None) and train_errors[-1] < es_stop:
+                            print(f"ES with tr_MEE below {train_errors[-1]}")
+                            return test_errors, train_errors
+
                     
 
             if es_data is not None and test_data is not None:
@@ -379,12 +384,12 @@ class NeuralNetwork:
              
                 if np.isnan(esError):
                     # overflow
-                    return min_trError, min_testError
+                    return min_testError, min_trError
                 if esError > min_esError:
                     if epochsCounter > es_patience:
                         # Stop training
                         print("EARLY STOPPED")
-                        return min_trError, min_testError
+                        return  min_testError, min_trError
                     else:
                         epochsCounter+= 1
                 if esError < min_esError:
@@ -397,8 +402,7 @@ class NeuralNetwork:
         # end training
 
         if es_data is not None and test_data is not None:
-            return min_trError, min_testError
-
+            return  min_testError, min_trError
         if outFun2 is not None and test_data is not None:
             return test_errors, train_errors, fun2_test_err, fun2_train_err
         elif outFun2 is None and test_data is not None:

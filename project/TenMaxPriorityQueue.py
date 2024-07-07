@@ -33,6 +33,8 @@ def push(list_, elem):
 
 def printQueue(list_,file=None):
     temp=[]
+    print(list_)
+    return
     for i in range(len(list_)):
         val_mean, (variance,tr_mean,comb) = heapq.heappop(list_)
         val_mean=abs(val_mean)

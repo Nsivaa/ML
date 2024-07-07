@@ -108,7 +108,7 @@ def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=N
         print("GRID SEARCH FINISHED")
         minQueue.printQueue(best_comb)
 
-def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs):
+def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs,es_stop=None):
 
     if "ID" in data.columns:
         data.drop(["ID"], axis=1, inplace=True)
@@ -129,7 +129,7 @@ def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs):
         net.add_output_layer(n_neurons, n_outputs)
         tr_set = pd.concat(
             [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
-        tr_error, valid_error= net.train(tr_set, parameters,test_data=fold,es_data=es_data, progress_bar=False)
+        valid_error, tr_error= net.train(tr_set, parameters,test_data=fold,es_data=es_data, progress_bar=False,es_stop=es_stop)
         if tr_error == np.inf and valid_error == np.inf:
             return np.inf, np.inf, np.inf
         valid_errors.append(valid_error)
