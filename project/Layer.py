@@ -50,8 +50,6 @@ class Layer:
 
 
 
-    # output will be a numpy ndarray with dimension (n)
-    # ndarray of shape (1,n) is different from ndarray of shape (n)
     def feed_forward(self, inputs: np.ndarray, act_fun: str):
         output = np.dot(inputs, self.weights) + self.biases[0]
         self.output = activation(output, act_fun)

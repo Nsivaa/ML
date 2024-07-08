@@ -13,10 +13,11 @@ class Ensemble:
         
     '''
 
-    def __init__(self, structures):
+    def __init__(self, structures,n=5):
         # models contains the five best networks (NeuralNetwork istances)
         self.models = []
         self.structures=structures
+        self.n = n
         self.n_inputs = 10
         self.n_outputs = 3
         # the following are array of array conting the training-test errors
@@ -41,7 +42,7 @@ class Ensemble:
         # restituisce il risultato della loss function calcolato rispetto l'input (row,label)
         # 3 is the number of outputs of each model
         outputs = np.zeros(3,dtype=float)
-        for i in range(5):
+        for i in range(self.n):
             self.models[i].input_layer.output = np.asarray(row)
             self.models[i].hidden_layers[0].feed_forward(
                 self.models[i].input_layer.output, hid_act_fun)
@@ -54,7 +55,7 @@ class Ensemble:
             outputs+=self.models[i].output_layer.output
 
         #now we average the predictions and then the error can be calculated
-        outputs/=5
+        outputs/=self.n
         if onlyPrediction:
             return outputs
         err = []
@@ -115,7 +116,7 @@ class Ensemble:
                 break
             # train an epoch for each model
             tr_data = tr_data.sample(frac=1)
-            for i in range(5):
+            for i in range(self.n):
                 if self.ES[i]:
                     continue
                 for step in np.arange(0, n / mb[i]):
@@ -218,7 +219,7 @@ class Ensemble:
                 [mse,mee] = self.calcError(
                     data, labels, hid_act_fun, out_act_fun, [cost_fun,outFun2])
                 test_mse.append(mse)
-                train_mee.append(mee)
+                test_mee.append(mee)
             # end epoch
         # end training
         if outFun2 is None:

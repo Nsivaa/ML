@@ -77,10 +77,11 @@ def derivative(act_fun: str, arr: np.ndarray):
 def mse(netOut: np.ndarray, sampleOut: np.ndarray):
     return np.sum((netOut-sampleOut)**2)/2
 
+# MEE
 def eucl(netOut, sampleOut):
     return np.sqrt(np.sum((netOut-sampleOut)**2))
 
-#retituisce 1 per match, 0 else
+# match -> 1, 0 otherwise
 def accuracy(netOut, sampleOut):
     if netOut >= 0.5:
         netOut =1
