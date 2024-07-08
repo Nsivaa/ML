@@ -71,7 +71,7 @@ class NeuralNetwork:
         return totErr
     '''
     The method propagates the input 'row' in the network.
-    It returns the error (cost_fun) calculate between the output of the propagated input and 'label'
+    It returns the error (cost_fun) calculated between the output of the propagated input and 'label'
     '''
     def forwardPropagation(self, row: tuple, label: tuple, hid_act_fun: str, out_act_fun: str, cost_fun: list):
 

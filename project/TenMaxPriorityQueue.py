@@ -1,13 +1,14 @@
 import heapq
-
 import numpy as np
 
+'''
+elem is a tupla like (val_mean:float, (val_variance:float,tr_err:float,combination:dict))
+list[0] always contains the lowest mean among the list, the priority queue always keeps the 10 elements with the highest mean.
+To be able to maintain this property, since heapq only provides operations for minPriorityQueue, 
+the 'val_mean' value that we use as priority, will be within the queue with negative sign, so the smaller value will be
+the one with the highest absolute value (which is the one we are interested in removing from the queue)
+'''
 
-# elem sara una tupla del tipo (val_mean:float, (val_variance:float,tr_err:float,combination:dict))
-# la priority queue mantiene sempre i 10 elem con mean maggiore, inoltre list[0] continene sempre la mean minore tra gli
-# per poter mantenere questa proprietà, dato che heapq prevede solo operazioni per minPriorityQueue, il valore mean,
-# che utilizziamo come priority, sarà di segno negativo (all'interno della queue), in questo modo il minore sarà
-# quello in valore assoluto maggiore (che è quello che eventualmente ci interessa togliere dalla queue)
 def push(list_, elem):
     val_mean, (variance,tr_mean,comb) = elem
     if val_mean == 1000000.0:

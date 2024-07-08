@@ -14,13 +14,14 @@ class Ensemble:
     '''
 
     def __init__(self, structures,n=5):
-        # models contains the five best networks (NeuralNetwork istances)
+        # models contains the 'n' best networks
         self.models = []
+        # structures contains the number of layer and neurons of each of the ensemble models
         self.structures=structures
         self.n = n
         self.n_inputs = 10
         self.n_outputs = 3
-        # the following are array of array conting the training-test errors
+        # the following are array of array containg the training\test errors
         self.tr_mse = [[],[],[],[],[]]
         self.tr_mee = [[],[],[],[],[]]
         self.test_mse = [[],[],[],[],[]]
@@ -38,8 +39,11 @@ class Ensemble:
             net.add_output_layer(n_neurons, self.n_outputs)
             self.models.append(net)
 
+    '''
+    The method propagates the input 'row' for each network of the ensemble and then averages the results.
+    It returns the error (cost_fun) calculated between the output of the propagated input and 'label'
+    '''
     def forwardPropagation(self, row: tuple, label: tuple, hid_act_fun: str, out_act_fun: str, cost_fun: list, onlyPrediction=False):
-        # restituisce il risultato della loss function calcolato rispetto l'input (row,label)
         # 3 is the number of outputs of each model
         outputs = np.zeros(3,dtype=float)
         for i in range(self.n):
@@ -66,7 +70,7 @@ class Ensemble:
                 err.append(eucl(outputs, np.array(label)))
         return err
 
-    # identical method as NeuralNetwork one
+    # identical method as the NeuralNetwork one
     def calcError(self, data: pd.DataFrame, labels: pd.DataFrame,
                   hid_act_fun: str = None, out_act_fun: str = None, cost_fun: list = None):
         # calcola l'errore sul dataset con i pesi e i bias correnti
@@ -81,9 +85,11 @@ class Ensemble:
             [totErr] = totErr
         return totErr
 
-
-    # train_params contains the train parameters of each model of the ensemble
-    # The training method is very similar to the NeuralNetwork one but it's written taking into account the only two times it will be used
+    '''
+    train_params contains the train parameters of each model of the ensemble
+    The training method is very similar to the NeuralNetwork one but it's written with some semplifications
+    taking into account the different use cases
+    '''
     def train_models(self, tr_data: pd.DataFrame, train_params, test_data=None, outFun2: str = None,epochs = 2000):
         # build models
         self.buildModels()
@@ -120,9 +126,7 @@ class Ensemble:
                 if self.ES[i]:
                     continue
                 for step in np.arange(0, n / mb[i]):
-                    # tra uno step e l'altro azzero gli accumulatori dei gradienti per ogni layer
                     self.models[i].reset_accumulators()
-                    # preparazione mb_Dataframe
                     start_pos = int(step * mb[i])
                     end_pos = int(start_pos + mb[i])
                     if end_pos >= n:
@@ -228,10 +232,6 @@ class Ensemble:
         else: 
             # retraining
             return test_mse, train_mse, test_mee, train_mee
-
-
-
-
 
     
     def __str__(self):

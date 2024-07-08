@@ -55,12 +55,11 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, typ
     minQueue.printQueue(res[0])
 
 
-# Si suppone se sia eseguita solo su CUP, sempre con ES
+# always executed with es_data
 def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=None, lock=None, type="monk", verbose="no", dirName=None):
-    # minqueue usata per tenere traccia delle 10 migliori combinazioni
+    # minqueue is used to store the best 10 combinations
     best_comb = []
     for parameters in search_space:
-        # tr_sarà l'errore scesi sotto il quale il modello rischia di overfittare quindi bisgona interrompere il training
         tr_err,valid_err, valid_variance = k_fold(
             k, data, parameters,es_data,type,n_inputs,n_outputs)
         minQueue.push(
@@ -78,8 +77,6 @@ def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=N
         temp = shared_res[0]
         for i in range(len(best_comb)):
             val_mean, (variance,tr_mean,comb) = best_comb[i]
-            # dato che col primo push avevamo reso negativi tutte le val_mean, adesso vanno riportate
-            # a positive altrimenti il confronto verrà fatto tra valori positivi (pushati) e negativi (sulla priority queue)
             val_mean = val_mean*(-1)
             minQueue.push(temp,(val_mean, (variance,tr_mean,comb)))
 
@@ -112,8 +109,6 @@ def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs,es_stop=None, pro
         tr_set = pd.concat(
             [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
         valid_error, tr_error= net.train(tr_set, parameters,test_data=fold,es_data=es_data, progress_bar=False,es_stop=es_stop)
-        if tr_error == np.inf and valid_error == np.inf:
-            return np.inf, np.inf, np.inf
         valid_errors.append(valid_error)
         tr_errors.append(tr_error)
 
@@ -126,6 +121,7 @@ def k_fold(k, data, parameters,es_data,type,n_inputs,n_outputs,es_stop=None, pro
 
     return tr_mean,valid_mean, valid_var
 
+# the difference between k_fold method is only the inizializzation of Ensemble object instead of NeuralNetwork
 def k_fold_ensemble(k, data,structures, train_params,progress_bar=True,epochs=2000):
 
     if "ID" in data.columns:
@@ -140,8 +136,6 @@ def k_fold_ensemble(k, data,structures, train_params,progress_bar=True,epochs=20
         tr_set = pd.concat(
             [f for f in folds if not (pd.Series.equals(f, fold))], axis=0)
         valid_error, tr_error= ensemble.train_models(tr_set, train_params,test_data=fold,epochs=epochs)
-        if tr_error == np.inf and valid_error == np.inf:
-            return np.inf, np.inf, np.inf
         valid_errors.append(valid_error)
         tr_errors.append(tr_error)
 
