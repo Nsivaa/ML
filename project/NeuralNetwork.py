@@ -12,6 +12,7 @@ np.seterr(over='ignore')
 class NeuralNetwork:
     '''
         NeuralNetwork class contains:
+        type: {"monk", "cup"}, the type of NN
         input_layer : Layer object
         hidden_layers: list of Layer objects
         output_layer: Layer object
@@ -68,9 +69,11 @@ class NeuralNetwork:
         if len(totErr) == 1:
             [totErr] = totErr
         return totErr
-
+    '''
+    The method propagates the input 'row' in the network.
+    It returns the error (cost_fun) calculate between the output of the propagated input and 'label'
+    '''
     def forwardPropagation(self, row: tuple, label: tuple, hid_act_fun: str, out_act_fun: str, cost_fun: list):
-        # restituisce il risultato della loss function calcolato per i pesi correnti e l'input (row,label)
 
         self.input_layer.output = np.asarray(row)
         # FIRST HIDDEN LAYER TAKES WEIGHTS FROM INPUT LAYER
@@ -94,37 +97,36 @@ class NeuralNetwork:
 
         return err
 
+    # output layer backpropagation
     def outLayerBackpropagation(self, label, activationFunc):
         # output layer
         self.output_layer.bias_gradients = np.zeros(
             self.output_layer.n_neurons)
         self.output_layer.weight_gradients = np.zeros(
             (self.output_layer.n_inputs, self.output_layer.n_neurons))
-        # per ogni neurone del layer calcolo delta, gradiente dei pesi e gradiente del bias
-        # considero delta del neurone il corrispettivo valore del gradiente (sono lo stesso valore)
         for i in np.arange(0, self.output_layer.n_neurons):
             '''
-            i è l'i-esimo neurone del layer
-            Per MSE delta_i = (d_i - o_i) * f'(net(i)) 
-            Per Cross-Entropy delta_i = [(d_i - o_i)/(o_i - o_i^2)] * f'(net(i)) ma f' = (o_i - o_i^2) => delta = (d_i - o_i)
+            i is the i-th layer neuron
+            MSE delta_i = (d_i - o_i) * f'(net(i)) 
             '''
             net = np.dot(
                 self.hidden_layers[-1].output, self.output_layer.weights[:, i]) + self.output_layer.biases[0][i]
             delta = (label[i] - self.output_layer.output[i]) * \
             derivative(activationFunc, net)
             self.output_layer.bias_gradients[i] = delta
-            # gradiente_w_j,i = bias_i * o_j
+            # gradient_w_j,i = bias_i * o_j
             self.output_layer.weight_gradients[:,
                                                i] = delta * self.hidden_layers[-1].output
 
         self.output_layer.acc_bias_gradients += self.output_layer.bias_gradients
         self.output_layer.acc_weight_gradients += self.output_layer.weight_gradients
 
+    # hidden layers backpropagation
     def hiddenLayerBackpropagation(self, act_fun: str):
         for layer in np.arange(len(self.hidden_layers), 0, -1) - 1:
-
+            # setting references to the precedent and next hidden layer, with the respect to the current one
             if layer == len(self.hidden_layers) - 1:
-                # ultimo hidden layer
+                # last hidden layer
                 next_layer = self.output_layer
             else:
                 next_layer = self.hidden_layers[layer + 1]
@@ -134,23 +136,17 @@ class NeuralNetwork:
                 prec_layer = self.hidden_layers[layer - 1]
 
             layer = self.hidden_layers[layer]
-            layer.bias_gradients = np.zeros(layer.n_neurons)
-            layer.weight_gradients = np.zeros((layer.n_inputs, layer.n_neurons))
-            # per ogni neurone del layer calcolo delta, gradiente dei pesi e gradiente del bias
-            # considero delta del neurone il corrispettivo valore del gradiente (sono lo stesso valore)
 
+            # weight and bias gradient calculation
             layer.bias_gradients= np.dot(next_layer.bias_gradients, next_layer.weights.T)*derivative(act_fun, (np.dot(prec_layer.output,
                                                                                                                       layer.weights) + layer.biases[0]))
 
             layer.weight_gradients = np.dot(prec_layer.output.reshape((len(prec_layer.output), 1)),
                                             layer.bias_gradients.reshape((1, len(layer.bias_gradients))))
             
+            # the accumulator version, for each layer accumulate the gradients across the differents sample within the same updating step
             layer.acc_bias_gradients += layer.bias_gradients
             layer.acc_weight_gradients += layer.weight_gradients
-
-
-    # tengo due versioni di una matrice di gradienti per i pesi ed un vettore di gradienti per i bias
-    # una versione è riservata ad i calcoli relativi ad uno specifico smple, mentre la versione "acc_" serve per il calolo del gradiente tenendo conto di tutti i samples
 
     def reset_accumulators(self):
         for layer in np.arange(len(self.hidden_layers), -1, -1) - 1:
@@ -177,10 +173,10 @@ class NeuralNetwork:
             else:
                 layer = self.hidden_layers[layer]
 
-            # clippo il gradiente per evitare gradient explosion
             if clip_value:
                 layer.clip_gradients(clip_value)
             if ridge_lambda is not None:
+                # REG l2
                 if momentum is None:
                     layer.weights += eta * \
                         (layer.acc_weight_gradients / n) - \
@@ -199,9 +195,11 @@ class NeuralNetwork:
                     layer.momentum_velocity_w = deltaW
                     layer.momentum_velocity_b = deltaB
             else:
-                # nella formula del gradiente con lasso regression si ha la derivata del valore assoluto dei pesi
-                # perciò la derivata, che si sommerà ad eta e al momentum nel calcolo del nuovo peso sarà:
-                # -lambda per peso >=0 mentre + lambda altrimenti
+                # REG l1
+                '''
+                the lambda (l1 reg term) sign on the weights update, depends on the weight sign
+                (-lambda) if weight>=0, (+lambda) otherwise
+                '''
                 lasso_lambda_matrix = lasso_lambda * np.where(
                     layer.weights >= 0, -1, 1)
                 if momentum is None:
@@ -217,20 +215,11 @@ class NeuralNetwork:
                     layer.biases[0] += deltaB
 
                     # update velocities
+                    # In this implementation, we choose not to include the reg terms on the momentum velocity 
+                    # so that the reg term is independents to eta and alpha (momentum)
                     layer.momentum_velocity_w = deltaW
                     layer.momentum_velocity_b = deltaB
 
-    # n_mb -> minibatch size
-    # TODO: il parametro di regolarizzazione si è scelto di non considerarlo nell'aggiornamento della velocità del momentum così da mantenerlo indipendente da eta e alpha (momentum)
-    '''
-        Nella versione con ridge regression, viene  agggiunto il termine lambda * norma(2) al quadrato del vettore 
-        contenente tutti i pesi del network alla funzione di loss e, di conseguenza anche all'aggiornamento dei pesi,
-        L'errore che si stampa nei plot e che si usa per i confronti tra i modelli è quello classico, che non tiene conto della regolarizzazione
-        il termine di regolarizzazaione sarà solo aggiunto nel weight update. 
-        Lambda dovrebbe esser moltiplicato per mb/n ma si evita in quanto il parametro sarò automaticamente selezionato nelle grid search
-    '''
-    #l'esecuzione attesa di train con ES implica la restituzione di due soli valori (da utilizzare er retrain senza ES), anzichè di 1 o 2 o 4 liste di errori (da utilizzare per il plot)
-    #test_data != None => si calcola anche validation/test loss, outFun2 != None => si calcolano anche traing e test Error
     
     def train(self, tr_data: pd.DataFrame, params, test_data=None, outFun2: str = None, type = None, es_data=None,es_stop= None, progress_bar=True):
         mb = params["mb"]
@@ -278,16 +267,15 @@ class NeuralNetwork:
         # print every 10 seconds / 100 iterations
         for epoch in tqdm(np.arange(1, epochs + 1), desc="Training", unit="epoch", miniters=100, mininterval=10, disable=not progress_bar):
             # shuffle dataframe before each epoch
-            # np.random.seed()
             
             tr_data = tr_data.sample(frac=1)
             if linear_decay and decay_step < decay_max_steps:
                 decay_step += 1
 
             for step in np.arange(0, n / mb):
-                # tra uno step e l'altro azzero gli accumulatori dei gradienti per ogni layer
+                # between each steps accumulators must be reset
                 self.reset_accumulators()
-                # preparazione mb_Dataframe
+
                 start_pos = int(step * mb)
                 end_pos = int(start_pos + mb)
                 if end_pos >= n:
@@ -307,12 +295,11 @@ class NeuralNetwork:
                     # Forward propagation
                     self.forwardPropagation(
                         row, label, hid_act_fun, out_act_fun, [cost_fun])
-
                     # backPropagation
                     self.outLayerBackpropagation(label, out_act_fun)
                     # hidden layers
                     self.hiddenLayerBackpropagation(hid_act_fun)
-                # aggiornamento dei pesi
+                # weights update
                 if linear_decay:
                     self.update_weights(mb, eta, momentum, ridge_lambda, lasso_lambda,
                                         eta0=eta0, decay_max_steps=decay_max_steps, step=decay_step,
@@ -321,7 +308,7 @@ class NeuralNetwork:
                     self.update_weights(mb, eta, momentum,
                                         ridge_lambda, lasso_lambda, clip_value)
 
-            # calcolo  degli error su test e fun2 a fine epoca
+            # at the end of each epochs errors are calculated
             if type == "monk":
                 labels = tr_data[["Class"]]
                 data = tr_data.drop(["Class"], axis=1)
@@ -411,7 +398,6 @@ class NeuralNetwork:
             return train_errors, fun2_train_err
 
         return train_errors
-    # si suppone che la k-fold sia solo usata nella grid, che è solo usata in Cup con ES
     
 
     def __len__(self):
