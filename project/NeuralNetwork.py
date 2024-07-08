@@ -215,8 +215,6 @@ class NeuralNetwork:
                     layer.biases[0] += deltaB
 
                     # update velocities
-                    # In this implementation, we choose not to include the reg terms on the momentum velocity 
-                    # so that the reg term is independents to eta and alpha (momentum)
                     layer.momentum_velocity_w = deltaW
                     layer.momentum_velocity_b = deltaB
 
