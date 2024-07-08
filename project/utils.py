@@ -8,7 +8,7 @@ import itertools
 import datetime
 from tqdm import tqdm
 from Ensemble import *
-
+import matplotlib.pyplot as plt
 import TenMaxPriorityQueue as minQueue
 
 
@@ -24,8 +24,8 @@ def get_search_space(grid):
     return dict_search_space
 
 
-def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, refined=False, epochs_refinment=1000, type="monk", verbose="yes"):
-    cpus = 10
+def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, type="monk", verbose="yes"):
+    cpus = (os.cpu_count()) -2
     if len(search_space) >= cpus:
         n_cores = cpus
     else:
@@ -52,33 +52,13 @@ def parallel_grid_search(k, data,es_data, search_space, n_inputs, n_outputs, ref
         process.join()
 
     print("GRID SEARCH FINISHED")
-    temp=res[0]
     minQueue.printQueue(res[0])
-    if refined:
-        print("Results refinement...")
-        search_space = []
-        for elem in temp:
-            (val_mean, (variance, tr_mean, parameters)) = elem
-            parameters["epochs"]=epochs_refinment
-            search_space.append(parameters)
-        parallel_grid_search(
-            5, data, es_data, search_space, n_inputs, n_outputs,type="cup",verbose="refined")
-        print("REFINED SEARCH FINISHED")
-
-    if verbose == "yes":
-        filename = "./" + dirName + "/results.txt"
-        f = open(filename, "w")
-        minQueue.printQueue(res[0], file=f)
-        f.close()
 
 
 # Si suppone se sia eseguita solo su CUP, sempre con ES
 def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=None, lock=None, type="monk", verbose="no", dirName=None):
     # minqueue usata per tenere traccia delle 10 migliori combinazioni
     best_comb = []
-    ref_string = ""
-    if verbose == "refined":
-        ref_string = "REFINED"
     for parameters in search_space:
         # tr_sarà l'errore scesi sotto il quale il modello rischia di overfittare quindi bisgona interrompere il training
         tr_err,valid_err, valid_variance = k_fold(
@@ -89,7 +69,7 @@ def grid_search(k, data,es_data, search_space, n_inputs, n_outputs, shared_res=N
         if verbose == "yes":
             fileName = dirName + "/" + ",".join(str(v) for v in parameters.values())
             file = open(fileName + ".txt", "w")
-            print(f"{ref_string} {parameters}\nValidation mean = {valid_err}, Variance = {valid_variance}\nTraining mean (ES) = {tr_err}\n", file=file)
+            print(f"{parameters}\nValidation mean = {valid_err}, Variance = {valid_variance}\nTraining mean (ES) = {tr_err}\n", file=file)
             file.close()
 
 
@@ -174,31 +154,6 @@ def k_fold_ensemble(k, data,structures, train_params,progress_bar=True,epochs=20
 
     return tr_mean,valid_mean, valid_var
 
-
-
-def weight_average(nets):
-    # assumes every net in the list has the same number of neurons
-
-    final_net = NeuralNetwork(type="cup")
-    final_net.add_input_layer(nets[0].input_layer.n_neurons)
-    for i in np.arange(len(nets[0].hidden_layers)):
-        h_layer = Layer(nets[0].hidden_layers[i].n_inputs,
-                        nets[0].hidden_layers[i].n_neurons, type="cup")
-        h_layer.weights = np.mean(
-            [net.hidden_layers[i].weights for net in nets], axis=0)
-        h_layer.biases = np.mean(
-            [net.hidden_layers[i].biases for net in nets], axis=1)
-        final_net.hidden_layers.append(h_layer)
-
-    final_net.add_output_layer(
-        nets[0].input_layer.n_inputs, nets[0].output_layer.n_neurons)
-    final_net.output_layer.weights = np.mean(
-        [net.output_layer.weights for net in nets], axis=0)
-    final_net.output_layer.biases = np.mean(
-        [net.output_layer.biases for net in nets], axis=1)
-
-    return final_net
-        
 def plot_loss_Cup(losses: np.ndarray, cost_fun: str,ax,test_losses=None):
     iterations = np.arange(len(losses))
     ax.set_xlabel("Epochs")
@@ -240,6 +195,43 @@ def plot_loss_Monk(losses: np.ndarray, cost_fun: str,ax,test_losses=None):
     ax.legend()
 
 
+def plot_ensembles(test_mse,train_mse,test_mee,train_mee,n=5):
+    fig,axs = plt.subplots(1,2,figsize=(10,5))
+    #First we need to calculate the means
+    train_mse_mean=get_mean(train_mse)
+    train_mee_mean=get_mean(train_mee)
+    test_mse_mean=get_mean(test_mse)
+    test_mee_mean=get_mean(test_mee)
+    iterations = np.arange(len(test_mse_mean))
+
+    # MSE plot
+    axs[0].set_xlabel("Epochs")
+    axs[0].set_ylabel("MSE Loss")
+    axs[0].set_title("Learning Curve")
+    label1 ="ensemble models mean training MSE"
+    label2 ="ensemble models mean test MSE"
+    axs[0].plot(iterations, train_mse_mean, color="black", label = label1)
+    axs[0].plot(iterations, test_mse_mean, color="red", linestyle="--", label = label2)
+    axs[0].legend()
+
+    # MEE plot
+    label1 ="ensemble models mean training MEE"
+    label2 ="ensemble models mean test MEE"
+    axs[1].set_title("Learning Curve")
+    axs[1].set_xlabel("Epochs")
+    axs[1].set_ylabel("MEE Loss")
+    axs[1].set_ylim((-1,11))
+    axs[1].plot(iterations, train_mee_mean, color="black", linestyle='-',label = label1)
+    axs[1].plot(iterations, test_mee_mean, color="red", linestyle='--',label = label2)
+
+    axs[1].legend()
+
+
+    
+    fig.tight_layout(pad=2.0)
+    plt.show()
+    return train_mse_mean, train_mee_mean, test_mse_mean,test_mee_mean
+
 def process_monk_data(data: pd.DataFrame):
     np.random.seed(0)
     data = data.sample(frac=1)
@@ -247,3 +239,11 @@ def process_monk_data(data: pd.DataFrame):
     data = pd.get_dummies(
         data, columns=["a1", "a2", "a3", "a4", "a5", "a6"], dtype=int)
     return data
+
+def get_mean(list):
+    max_lenght = max(len(lista) for lista in list)
+    # padding of the shorter lists within list
+    _list = [lista + [0] * (max_lenght - len(lista)) for lista in list]
+    mean = [sum(valori) / (sum(1 for val in valori if val > 0)) for valori in zip(*_list)]
+    return mean
+
